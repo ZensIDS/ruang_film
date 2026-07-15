@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Http\Controllers;
 
 use App\Models\Category;
@@ -17,12 +16,24 @@ class SubmissionReviewController extends Controller
     {
         $this->syncClosedSubmissionStatuses();
 
-        $stage = $this->resolveStage($request->input('stage'));
+        $user      = auth()->user();
+        $isAdmin   = $user->hasRole(['admin', 'adminsub']);
+        $canCurate = $user->hasRole('kurator');
+        $canJudge  = $user->hasRole('juri');
+
+        $stage                       = $this->resolveStage($request->input('stage'));
         $selectedSubmissionSettingId = $this->resolveSubmissionSettingId($request);
-        $selectedCategoryId = $this->resolveCategoryId($request);
-        $selectedCurationStatus = $this->resolveCurationStatus($request);
-        $statusLabels = Film::curationStatusLabels();
+        $selectedCategoryId          = $this->resolveCategoryId($request);
+        $selectedCurationStatus      = $this->resolveCurationStatus($request);
+        $statusLabels                = Film::curationStatusLabels();
+
+        // Admin filter official selection → paksa stage jury
+        if ($isAdmin && $selectedCurationStatus === Film::CURATION_APPROVED) {
+            $stage = ReviewRubric::STAGE_JURY;
+        }
+
         $displayRubric = $this->displayRubric($selectedCategoryId, $stage);
+
         $query = Film::with([
             'user.category',
             'category.rubrics.groups.items',
@@ -40,15 +51,14 @@ class SubmissionReviewController extends Controller
             $query->where('category_id', $selectedCategoryId);
         }
 
-        if (auth()->user()->hasRole('juri')) {
-            if (auth()->user()->category_id) {
-                $query->where('category_id', auth()->user()->category_id);
+        if ($canJudge) {
+            if ($user->category_id) {
+                $query->where('category_id', $user->category_id);
             } else {
                 $query->whereRaw('1 = 0');
             }
-
             $query->where('curation_status', Film::CURATION_APPROVED);
-        } elseif (auth()->user()->hasRole('kurator')) {
+        } elseif ($canCurate) {
             $reviewableStatuses = Film::curatorReviewableStatuses();
 
             if ($selectedCurationStatus && in_array($selectedCurationStatus, $reviewableStatuses, true)) {
@@ -69,18 +79,21 @@ class SubmissionReviewController extends Controller
         );
 
         return view('review.index', [
-            'title' => 'Review Submission',
-            'films' => $films,
-            'submissionPeriods' => SubmissionSetting::orderByDesc('open_at')->get(),
-            'categories' => Category::orderBy('sort_order')->orderBy('name')->get(),
-            'statusLabels' => $statusLabels,
+            'title'                       => 'Review Submission',
+            'films'                       => $films,
+            'submissionPeriods'           => SubmissionSetting::orderByDesc('open_at')->get(),
+            'categories'                  => Category::orderBy('sort_order')->orderBy('name')->get(),
+            'statusLabels'                => $statusLabels,
             'selectedSubmissionSettingId' => $selectedSubmissionSettingId,
-            'selectedCategoryId' => $selectedCategoryId,
-            'selectedCurationStatus' => $selectedCurationStatus,
-            'stage' => $stage,
-            'stageLabels' => ReviewRubric::stageLabels(),
-            'displayRubric' => $displayRubric,
-            'rubricItems' => $this->rubricItems($displayRubric),
+            'selectedCategoryId'          => $selectedCategoryId,
+            'selectedCurationStatus'      => $selectedCurationStatus,
+            'stage'                       => $stage,
+            'stageLabels'                 => ReviewRubric::stageLabels(),
+            'displayRubric'               => $displayRubric,
+            'rubricItems'                 => $this->rubricItems($displayRubric),
+            'isAdmin'                     => $isAdmin,
+            'canCurate'                   => $canCurate,
+            'canJudge'                    => $canJudge,
         ]);
     }
 
@@ -92,7 +105,7 @@ class SubmissionReviewController extends Controller
 
         $validated = $request->validate([
             'submission_setting_id' => 'required|exists:submission_settings,id',
-            'category_id' => 'nullable|exists:categories,id',
+            'category_id'           => 'nullable|exists:categories,id',
         ]);
 
         $period = SubmissionSetting::findOrFail($validated['submission_setting_id']);
@@ -104,12 +117,12 @@ class SubmissionReviewController extends Controller
         $query = Film::where('submission_setting_id', $period->id)
             ->where('curation_status', Film::CURATION_UNDER_REVIEW);
 
-        if (!empty($validated['category_id'])) {
+        if (! empty($validated['category_id'])) {
             $query->where('category_id', $validated['category_id']);
         }
 
         $count = $query->update([
-            'status' => Film::CURATION_DETERMINATION,
+            'status'          => Film::CURATION_DETERMINATION,
             'curation_status' => Film::CURATION_DETERMINATION,
         ]);
 
@@ -124,9 +137,9 @@ class SubmissionReviewController extends Controller
 
         $validated = $request->validate([
             'submission_setting_id' => 'required|exists:submission_settings,id',
-            'category_id' => 'required|exists:categories,id',
-            'film_ids' => 'nullable|array',
-            'film_ids.*' => 'integer|exists:films,id',
+            'category_id'           => 'required|exists:categories,id',
+            'film_ids'              => 'nullable|array',
+            'film_ids.*'            => 'integer|exists:films,id',
         ]);
 
         $eligibleIds = Film::where('submission_setting_id', $validated['submission_setting_id'])
@@ -142,14 +155,14 @@ class SubmissionReviewController extends Controller
             ->values();
 
         Film::whereIn('id', $selectedIds)->update([
-            'status' => Film::CURATION_APPROVED,
+            'status'          => Film::CURATION_APPROVED,
             'curation_status' => Film::CURATION_APPROVED,
         ]);
 
         Film::whereIn('id', $eligibleIds->diff($selectedIds))->update([
-            'status' => Film::CURATION_REJECTED,
+            'status'          => Film::CURATION_REJECTED,
             'curation_status' => Film::CURATION_REJECTED,
-            'winner_rank' => null,
+            'winner_rank'     => null,
         ]);
 
         return back()->with('success', 'Official Selection berhasil diperbarui.');
@@ -164,7 +177,7 @@ class SubmissionReviewController extends Controller
         ]);
 
         $attributes = [
-            'status' => $validated['curation_status'],
+            'status'          => $validated['curation_status'],
             'curation_status' => $validated['curation_status'],
         ];
 
@@ -190,7 +203,7 @@ class SubmissionReviewController extends Controller
 
         $rubric = $this->resolveRubric($film, $stage);
 
-        if (!$rubric) {
+        if (! $rubric) {
             return redirect()->route('review.index')->with('warning', 'Rubrik penilaian kategori ini belum tersedia.');
         }
 
@@ -201,12 +214,12 @@ class SubmissionReviewController extends Controller
             ->first();
 
         return view('review.score', [
-            'title' => 'Form Penilaian',
-            'film' => $film->loadMissing(['category', 'submissionSetting']),
-            'stage' => $stage,
+            'title'      => 'Form Penilaian',
+            'film'       => $film->loadMissing(['category', 'submissionSetting']),
+            'stage'      => $stage,
             'stageLabel' => ReviewRubric::stageLabels()[$stage] ?? ucfirst($stage),
-            'rubric' => $rubric,
-            'review' => $review,
+            'rubric'     => $rubric,
+            'review'     => $review,
         ]);
     }
 
@@ -223,7 +236,7 @@ class SubmissionReviewController extends Controller
 
         $rubric = $this->resolveRubric($film, $stage);
 
-        if (!$rubric) {
+        if (! $rubric) {
             return back()->with('warning', 'Rubrik penilaian kategori ini belum tersedia.');
         }
 
@@ -235,9 +248,9 @@ class SubmissionReviewController extends Controller
             return (string) $id;
         })->all();
 
-        $scoreInput = $request->input('scores', []);
+        $scoreInput         = $request->input('scores', []);
         $submittedScoreKeys = array_map('strval', array_keys(is_array($scoreInput) ? $scoreInput : []));
-        $unknownScoreKeys = array_diff($submittedScoreKeys, $allowedScoreKeys);
+        $unknownScoreKeys   = array_diff($submittedScoreKeys, $allowedScoreKeys);
 
         if ($unknownScoreKeys) {
             throw ValidationException::withMessages([
@@ -246,7 +259,7 @@ class SubmissionReviewController extends Controller
         }
 
         $rules = [
-            'note' => 'nullable|string',
+            'note'   => 'nullable|string',
             'scores' => 'required|array',
         ];
 
@@ -256,39 +269,39 @@ class SubmissionReviewController extends Controller
 
         $validated = $request->validate($rules, [
             'scores.*.integer' => 'Nilai penilaian harus berupa angka bulat tanpa desimal.',
-            'scores.*.min' => 'Nilai penilaian minimal 1.',
-            'scores.*.max' => 'Nilai penilaian maksimal 10.',
+            'scores.*.min'     => 'Nilai penilaian minimal 1.',
+            'scores.*.max'     => 'Nilai penilaian maksimal 10.',
         ]);
         $totalScore = 0;
 
         DB::transaction(function () use ($film, $stage, $rubric, $items, $validated, &$totalScore) {
             $review = SubmissionReview::updateOrCreate(
                 [
-                    'film_id' => $film->id,
+                    'film_id'     => $film->id,
                     'reviewer_id' => auth()->id(),
-                    'stage' => $stage,
+                    'stage'       => $stage,
                 ],
                 [
                     'review_rubric_id' => $rubric->id,
-                    'note' => $validated['note'] ?? null,
-                    'submitted_at' => now(),
+                    'note'             => $validated['note'] ?? null,
+                    'submitted_at'     => now(),
                 ]
             );
 
             $review->scores()->delete();
 
             foreach ($items as $item) {
-                $score = (int) $validated['scores'][$item->id];
-                $weight = (float) $item->weight;
-                $weightedScore = round($score * $weight, 2);
-                $totalScore += $weightedScore;
+                $score          = (int) $validated['scores'][$item->id];
+                $weight         = (float) $item->weight;
+                $weightedScore  = round($score * $weight, 2);
+                $totalScore    += $weightedScore;
 
                 $review->scores()->create([
                     'review_rubric_item_id' => $item->id,
-                    'item_title' => $item->title,
-                    'item_weight' => $weight,
-                    'score' => $score,
-                    'weighted_score' => $weightedScore,
+                    'item_title'            => $item->title,
+                    'item_weight'           => $weight,
+                    'score'                 => $score,
+                    'weighted_score'        => $weightedScore,
                 ]);
             }
 
@@ -298,8 +311,8 @@ class SubmissionReviewController extends Controller
         return redirect()
             ->route('review.index', [
                 'submission_setting_id' => $film->submission_setting_id,
-                'category_id' => $film->category_id,
-                'stage' => $stage,
+                'category_id'           => $film->category_id,
+                'stage'                 => $stage,
             ])
             ->with('success', 'Penilaian berhasil disimpan. Total nilai: ' . number_format($totalScore, 2));
     }
@@ -312,11 +325,13 @@ class SubmissionReviewController extends Controller
             return back()->with('warning', 'Peringkat hanya bisa ditetapkan untuk film Official Selection.');
         }
 
-        $winnerRank = $request->validate([
-            'winner_rank' => 'nullable',
+        // 1. Validasi request
+        $validated = $request->validate([
+            'winner_rank' => 'nullable|string',
         ]);
 
-        // $winnerRank = Film::normalizeWinnerRank($validated['winner_rank'] ?? null);
+        // 2. Ambil nilai string murni dari array hasil validasi
+        $winnerRank = $validated['winner_rank'] ?? null;
 
         if ($winnerRank) {
             $exists = Film::where('submission_setting_id', $film->submission_setting_id)
@@ -332,53 +347,54 @@ class SubmissionReviewController extends Controller
             }
         }
 
+        // 3. Update dengan string murni
         $film->update(['winner_rank' => $winnerRank]);
 
         return back()->with('success', 'Peringkat pemenang berhasil diperbarui.');
     }
 
-    public function updateNominate(Request $request, Film $film)
-    {
-        abort_unless(auth()->user()->hasRole(['admin', 'adminsub']), 403);
+    // public function updateNominate(Request $request, Film $film)
+    // {
+    //     abort_unless(auth()->user()->hasRole(['admin', 'adminsub']), 403);
 
-        if ($film->curation_status !== Film::CURATION_APPROVED) {
-            return back()->with('warning', 'Nominasi hanya bisa ditetapkan untuk film Official Selection.');
-        }
+    //     if ($film->curation_status !== Film::CURATION_APPROVED) {
+    //         return back()->with('warning', 'Nominasi hanya bisa ditetapkan untuk film Official Selection.');
+    //     }
 
-        $validated = $request->validate([
-            'nominate' => 'nullable|string',
-        ]);
+    //     $validated = $request->validate([
+    //         'nominate' => 'nullable|string',
+    //     ]);
 
-        $newNominate = $validated['nominate'] ?? null;
+    //     $newNominate = $validated['nominate'] ?? null;
 
-        if ($newNominate) {
-            // Cegah duplikat di film yang sama
-            $existing = $film->nominate ?? [];
-            if (in_array($newNominate, $existing)) {
-                return back()->withErrors([
-                    'nominate' => 'Nominasi tersebut sudah ditambahkan untuk film ini.',
-                ]);
-            }
+    //     if ($newNominate) {
+    //         // Cegah duplikat di film yang sama
+    //         $existing = $film->nominate ?? [];
+    //         if (in_array($newNominate, $existing)) {
+    //             return back()->withErrors([
+    //                 'nominate' => 'Nominasi tersebut sudah ditambahkan untuk film ini.',
+    //             ]);
+    //         }
 
-            // Cegah duplikat antar film dalam periode + kategori yang sama
-            $existsElsewhere = Film::where('submission_setting_id', $film->submission_setting_id)
-                ->where('category_id', $film->category_id)
-                ->where('id', '!=', $film->id)
-                ->whereJsonContains('nominate', $newNominate)
-                ->exists();
+    //         // Cegah duplikat antar film dalam periode + kategori yang sama
+    //         $existsElsewhere = Film::where('submission_setting_id', $film->submission_setting_id)
+    //             ->where('category_id', $film->category_id)
+    //             ->where('id', '!=', $film->id)
+    //             ->whereJsonContains('nominate', $newNominate)
+    //             ->exists();
 
-            if ($existsElsewhere) {
-                return back()->withErrors([
-                    'nominate' => 'Nominasi tersebut sudah dipakai oleh film lain di periode dan kategori yang sama.',
-                ]);
-            }
+    //         if ($existsElsewhere) {
+    //             return back()->withErrors([
+    //                 'nominate' => 'Nominasi tersebut sudah dipakai oleh film lain di periode dan kategori yang sama.',
+    //             ]);
+    //         }
 
-            $existing[] = $newNominate;
-            $film->update(['nominate' => $existing]);
-        }
+    //         $existing[] = $newNominate;
+    //         $film->update(['nominate' => $existing]);
+    //     }
 
-        return back()->with('success', 'Nominasi berhasil diperbarui.');
-    }
+    //     return back()->with('success', 'Nominasi berhasil diperbarui.');
+    // }
 
     protected function resolveStage($stage)
     {
@@ -390,7 +406,7 @@ class SubmissionReviewController extends Controller
             return ReviewRubric::STAGE_JURY;
         }
 
-        if (!$stage) {
+        if (! $stage) {
             return ReviewRubric::STAGE_CURATION;
         }
 
@@ -444,16 +460,16 @@ class SubmissionReviewController extends Controller
     {
         if (
             $stage === ReviewRubric::STAGE_CURATION
-            && !in_array($film->curation_status, Film::curatorReviewableStatuses(), true)
+            && ! in_array($film->curation_status, Film::curatorReviewableStatuses(), true)
         ) {
-            return 'Kurator hanya dapat menilai film yang masih berstatus Verified atau Dalam Kurasi.';
+            return 'Kurator hanya dapat menilai film yang masih berstatus Verified atau Under Review.';
         }
 
         if ($stage === ReviewRubric::STAGE_JURY && $film->curation_status !== Film::CURATION_APPROVED) {
             return 'Hanya film Official Selection yang dapat dinilai juri.';
         }
 
-        if ($stage === ReviewRubric::STAGE_JURY && !auth()->user()->category_id) {
+        if ($stage === ReviewRubric::STAGE_JURY && ! auth()->user()->category_id) {
             return 'Akun juri ini belum memiliki kategori penilaian.';
         }
 
@@ -471,7 +487,7 @@ class SubmissionReviewController extends Controller
     {
         $film->loadMissing('category');
 
-        if (!$film->category) {
+        if (! $film->category) {
             return null;
         }
 
@@ -480,7 +496,7 @@ class SubmissionReviewController extends Controller
 
     protected function displayRubric($categoryId, $stage)
     {
-        if (!$categoryId) {
+        if (! $categoryId) {
             return null;
         }
 
@@ -491,7 +507,7 @@ class SubmissionReviewController extends Controller
 
     protected function rubricItems(ReviewRubric $rubric = null)
     {
-        if (!$rubric) {
+        if (! $rubric) {
             return collect();
         }
 
@@ -506,14 +522,14 @@ class SubmissionReviewController extends Controller
 
         return $films->map(function ($film) use ($rubricItems, $stage) {
             $curationReviews = $film->submissionReviews->where('stage', ReviewRubric::STAGE_CURATION);
-            $juryReviews = $film->submissionReviews->where('stage', ReviewRubric::STAGE_JURY);
+            $juryReviews     = $film->submissionReviews->where('stage', ReviewRubric::STAGE_JURY);
 
             $film->curation_average_score = round((float) $curationReviews->avg('total_score'), 2);
-            $film->curation_review_count = $curationReviews->count();
-            $film->jury_average_score = $juryReviews->count()
+            $film->curation_review_count  = $curationReviews->count();
+            $film->jury_average_score     = $juryReviews->count()
                 ? round((float) $juryReviews->avg('total_score'), 2)
                 : round((float) $film->juryScores->avg('score'), 2);
-            $film->jury_review_count = $juryReviews->count() ?: $film->juryScores->count();
+            $film->jury_review_count     = $juryReviews->count() ?: $film->juryScores->count();
             $film->rubric_item_summaries = $this->itemSummaries($film, $stage, $rubricItems);
 
             return $film;
@@ -522,7 +538,7 @@ class SubmissionReviewController extends Controller
 
     protected function itemSummaries(Film $film, $stage, $items)
     {
-        if (!$stage || $items->isEmpty()) {
+        if (! $stage || $items->isEmpty()) {
             return collect();
         }
 
@@ -532,23 +548,23 @@ class SubmissionReviewController extends Controller
             $reviewerScores = $stageReviews->map(function ($review) use ($item) {
                 $score = $review->scores->firstWhere('review_rubric_item_id', $item->id);
 
-                if (!$score) {
+                if (! $score) {
                     return null;
                 }
 
                 return [
-                    'reviewer' => optional($review->reviewer)->name ?: 'Reviewer',
-                    'score' => (float) $score->score,
+                    'reviewer'       => optional($review->reviewer)->name ?: 'Reviewer',
+                    'score'          => (float) $score->score,
                     'weighted_score' => (float) $score->weighted_score,
-                    'total_score' => (float) $review->total_score,
+                    'total_score'    => (float) $review->total_score,
                 ];
             })->filter()->values();
 
             return [
                 $item->id => [
-                    'avg_score' => $reviewerScores->avg('score'),
+                    'avg_score'          => $reviewerScores->avg('score'),
                     'avg_weighted_score' => $reviewerScores->avg('weighted_score'),
-                    'reviewers' => $reviewerScores,
+                    'reviewers'          => $reviewerScores,
                 ],
             ];
         });

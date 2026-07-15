@@ -79,7 +79,11 @@ class Film extends Model
             return null;
         }
 
+<<<<<<< HEAD
         return 'Juara ' . $this->winner_rank;
+=======
+        return '' . $this->winner_rank;
+>>>>>>> 9e8c2069fe474883803df35494add3af52868881
     }
 
     public function getWinnerRankSortValueAttribute()
@@ -135,7 +139,11 @@ class Film extends Model
         $status = $this->display_status;
 
         if ($status === 'winner') {
+<<<<<<< HEAD
             return $this->winner_rank_label ?: 'Juara';
+=======
+            return $this->winner_rank_label ?: '';
+>>>>>>> 9e8c2069fe474883803df35494add3af52868881
         }
 
         $audienceStatus = $this->displayStatusFor($viewer);
@@ -148,14 +156,22 @@ class Film extends Model
         $labels = [
             static::CURATION_SUBMITTED => 'Submitted',
             static::CURATION_VERIFIED => 'Verified',
+<<<<<<< HEAD
             static::CURATION_UNDER_REVIEW => 'Dalam Kurasi',
+=======
+            static::CURATION_UNDER_REVIEW => 'Under Review',
+>>>>>>> 9e8c2069fe474883803df35494add3af52868881
             static::CURATION_DETERMINATION => 'Shortlist',
             static::CURATION_APPROVED => 'Official Selection',
             static::CURATION_REJECTED => 'Tidak Lolos',
         ];
 
         if ($audience === static::STATUS_AUDIENCE_PARTICIPANT) {
+<<<<<<< HEAD
             $labels[static::CURATION_DETERMINATION] = 'Dalam Kurasi';
+=======
+            $labels[static::CURATION_DETERMINATION] = 'Under Review';
+>>>>>>> 9e8c2069fe474883803df35494add3af52868881
         }
 
         return $labels;
@@ -241,6 +257,7 @@ class Film extends Model
     {
         return collect($films)
             ->sort(function ($filmA, $filmB) {
+<<<<<<< HEAD
                 $rankA = $filmA->winner_rank_sort_value;
                 $rankB = $filmB->winner_rank_sort_value;
 
@@ -252,6 +269,25 @@ class Film extends Model
                     return ($rankA ?? PHP_INT_MAX) <=> ($rankB ?? PHP_INT_MAX);
                 }
 
+=======
+                $rankA = $filmA->winner_rank_sort_value; // Mengambil angka 1-7 dari extractWinnerRankValue
+                $rankB = $filmB->winner_rank_sort_value;
+
+                // 1. Amankan yang MEMILIKI JUARA agar selalu berada di paling atas
+                if (($rankA === null) !== ($rankB === null)) {
+                    // Jika rankA null (true/1) dan rankB ada (false/0), hasil 1 <=> 0 adalah 1 (A digeser ke bawah)
+                    return ($rankA === null) <=> ($rankB === null);
+                }
+
+                // 2. Urutkan sesama pemilik juara dari angka TERKECIL ke TERBESAR (Juara 1 [1] -> Juara 2 [2] -> Harapan 1 [4])
+                if ($rankA !== null && $rankB !== null) {
+                    if ($rankA !== $rankB) {
+                        return $rankA <=> $rankB; // Urutan naik (Ascending)
+                    }
+                }
+
+                // 3. Jika sama-sama TIDAK memiliki juara, urutkan berdasarkan tanggal dibuat (Dari TERBARU ke TERLAMA)
+>>>>>>> 9e8c2069fe474883803df35494add3af52868881
                 $createdAtA = optional($filmA->created_at)->getTimestamp() ?: 0;
                 $createdAtB = optional($filmB->created_at)->getTimestamp() ?: 0;
 
@@ -259,9 +295,16 @@ class Film extends Model
                     return $createdAtB <=> $createdAtA;
                 }
 
+<<<<<<< HEAD
                 return strcmp((string) $filmA->name, (string) $filmB->name);
             })
             ->values();
+=======
+                // 4. Jika tanggal sama persis, urutkan berdasarkan abjad nama film
+                return strcmp((string) $filmA->name, (string) $filmB->name);
+            })
+            ->values(); // Reset kunci index array agar berurutan kembali dari 0
+>>>>>>> 9e8c2069fe474883803df35494add3af52868881
     }
 
     public static function syncVerifiedStatusesForClosedPeriods()

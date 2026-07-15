@@ -9,6 +9,18 @@
         optional($detail)->kabupaten_name,
         optional($detail)->provinsi_name,
     ])->filter()->implode(', ');
+<<<<<<< HEAD
+=======
+
+    // Teks tujuan yang dipakai untuk deteksi "pacitan":
+    // - general buyer: label tujuan hasil pencarian destinasi
+    // - non general buyer: alamat tersimpan di biodata
+    $destinationTextForPacitanCheck = $isGeneralBuyer
+        ? $savedDestinationLabel
+        : (optional($detail)->formatted_address ?? '');
+
+    $isPacitanDestination = str_contains(strtolower($destinationTextForPacitanCheck), 'pacitan');
+>>>>>>> 9e8c2069fe474883803df35494add3af52868881
 @endphp
 <main class="relative z-10">
     <section class="max-w-6xl mx-auto px-6 md:px-10 py-16">
@@ -113,6 +125,10 @@
                         <div><b>WhatsApp:</b> {{ $user->no_hp }}</div>
                         <div><b>Alamat:</b> {{ $user->detail->formatted_address }}</div>
                     </div>
+<<<<<<< HEAD
+=======
+                    <input type="hidden" id="fixed-destination-text" value="{{ $user->detail->formatted_address }}">
+>>>>>>> 9e8c2069fe474883803df35494add3af52868881
                     <div class="mt-5">
                         <a href="{{ route('user-detail.index') }}" class="text-purple-300 text-sm hover:text-purple-200">Perbarui biodata pengiriman</a>
                     </div>
@@ -137,17 +153,32 @@
                             <div class="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                                 <div>
                                     <div class="text-white font-semibold">Metode Pengiriman</div>
+<<<<<<< HEAD
                                     <p class="text-sm text-gray-400">Pilih cek ongkir untuk kurir, atau ambil sendiri di basecamp tanpa ongkir.</p>
                                 </div>
                                 <div class="flex flex-col gap-3 md:items-end">
                                     <button type="button" id="load-shipping-options"
                                         class="h-11 px-5 rounded-xl bg-gradient-to-r from-purple-700 to-purple-500 text-white text-sm font-semibold flex items-center justify-center gap-2 hover:opacity-90 transition">
+=======
+                                    <p class="text-sm text-gray-400">Pilih Metode Pengiriman</p>
+                                </div>
+                                <div class="flex flex-col gap-3 md:items-end">
+                                    <button type="button" id="load-shipping-options"
+                                        class="h-11 px-5 rounded-xl bg-gradient-to-r from-purple-700 to-purple-500 text-white text-sm font-semibold flex items-center justify-center gap-2 hover:opacity-90 transition {{ $isPacitanDestination ? 'hidden' : '' }}">
+>>>>>>> 9e8c2069fe474883803df35494add3af52868881
                                         Cek Ongkir
                                     </button>
                                     <button type="button" id="select-self-pickup"
                                         class="h-11 px-5 rounded-xl border border-white/15 bg-white/5 text-white text-sm font-semibold flex items-center justify-center gap-2 hover:bg-white/10 transition">
                                         Ambil di Basecamp
                                     </button>
+<<<<<<< HEAD
+=======
+                                    <button type="button" id="select-sent-pacitan"
+                                        class="h-11 px-5 rounded-xl border border-white/15 bg-white/5 text-white text-sm font-semibold flex items-center justify-center gap-2 hover:bg-white/10 transition {{ $isPacitanDestination ? '' : 'hidden' }}">
+                                        Pengiriman Area Pacitan
+                                    </button>
+>>>>>>> 9e8c2069fe474883803df35494add3af52868881
                                 </div>
                             </div>
 
@@ -182,7 +213,15 @@
                 <div class="mt-6 pt-6 border-t border-white/10 space-y-3 text-sm text-gray-300">
                     <div class="flex justify-between">
                         <span>Subtotal</span>
+<<<<<<< HEAD
                         <span id="summary-subtotal" data-subtotal="{{ (int) $subtotal }}">Rp {{ number_format($subtotal, 0, ',', '.') }}</span>
+=======
+                        <span id="summary-subtotal"
+                            data-subtotal="{{ (int) $subtotal }}"
+                            data-total-weight="{{ $cart->items->sum(fn($item) => ($item->merchandise->weight ?? 0) * $item->quantity) }}">
+                            Rp {{ number_format($subtotal, 0, ',', '.') }}
+                        </span>
+>>>>>>> 9e8c2069fe474883803df35494add3af52868881
                     </div>
                     <div class="flex justify-between">
                         <span>Ongkir</span>
@@ -210,6 +249,10 @@
     const checkoutForm = document.getElementById('checkout-form');
     const shippingButton = document.getElementById('load-shipping-options');
     const selfPickupButton = document.getElementById('select-self-pickup');
+<<<<<<< HEAD
+=======
+    const sentPacitanButton = document.getElementById('select-sent-pacitan');
+>>>>>>> 9e8c2069fe474883803df35494add3af52868881
     const shippingOptionsContainer = document.getElementById('shipping-options');
     const shippingFeedback = document.getElementById('shipping-feedback');
     const selectedShippingOptionInput = document.getElementById('selected_shipping_option');
@@ -223,6 +266,16 @@
     const isGeneralBuyer = @json($isGeneralBuyer);
     const selfPickupOption = @json($selfPickupOption);
     const selfPickupLabel = @json($selfPickupLabel);
+<<<<<<< HEAD
+=======
+
+    // Pacitan punya dua sub-opsi (express & reguler), jadi dikirim sebagai
+    // dua constant terpisah dari controller — sama pola dengan self pickup.
+    const sentPacitanExpressOption = @json($sentPacitanExpressOption);
+    const sentPacitanRegularOption = @json($sentPacitanRegularOption);
+    const sentPacitanLabel = @json($sentPacitanLabel);
+
+>>>>>>> 9e8c2069fe474883803df35494add3af52868881
     const destinationKeywordInput = document.getElementById('destination_keyword');
     const searchDestinationButton = document.getElementById('search-destination');
     const destinationResults = document.getElementById('destination-results');
@@ -237,7 +290,14 @@
     const districtNameInput = document.getElementById('kecamatan_name');
     const villageNameInput = document.getElementById('desa_name');
     const postalCodeInput = document.getElementById('postal_code');
+<<<<<<< HEAD
     const destinationStorageKey = "shipping_destination_{{ $user->id }}";
+=======
+    const fixedDestinationTextInput = document.getElementById('fixed-destination-text');
+    const destinationStorageKey = "shipping_destination_{{ $user->id }}";
+    const totalWeightGram = Number(summarySubtotal.dataset.totalWeight || 0);
+    const totalWeightKg   = totalWeightGram / 1000;
+>>>>>>> 9e8c2069fe474883803df35494add3af52868881
 
     function formatRupiah(value) {
         return 'Rp ' + Number(value || 0).toLocaleString('id-ID');
@@ -247,6 +307,45 @@
         return selectedShippingOptionInput.value === selfPickupOption;
     }
 
+<<<<<<< HEAD
+=======
+    function isSentPacitanSelected() {
+        return selectedShippingOptionInput.value === sentPacitanExpressOption
+            || selectedShippingOptionInput.value === sentPacitanRegularOption;
+    }
+
+    function currentDestinationText() {
+        if (isGeneralBuyer) {
+            return shippingDestinationLabelInput.value || destinationKeywordInput?.value || '';
+        }
+
+        return fixedDestinationTextInput ? fixedDestinationTextInput.value : '';
+    }
+
+    // Tampilkan tombol "Pengiriman Area Pacitan" & sembunyikan "Cek Ongkir"
+    // hanya ketika teks tujuan mengandung kata "pacitan", dan sebaliknya.
+    function syncShippingMethodAvailability() {
+        const pacitanDetected = currentDestinationText().toLowerCase().includes('pacitan');
+
+        if (shippingButton) {
+            shippingButton.classList.toggle('hidden', pacitanDetected);
+        }
+        if (sentPacitanButton) {
+            sentPacitanButton.classList.toggle('hidden', !pacitanDetected);
+        }
+
+        // Kalau tujuan berubah kategori, opsi ongkir yang sudah dipilih
+        // sebelumnya (dari kategori lain) jadi tidak valid lagi.
+        if (pacitanDetected && !isSentPacitanSelected() && !isSelfPickupSelected()) {
+            clearShippingOptions('Periksa ulang ongkir');
+        } else if (!pacitanDetected && isSentPacitanSelected()) {
+            clearShippingOptions('Periksa ulang ongkir');
+        }
+
+        return pacitanDetected;
+    }
+
+>>>>>>> 9e8c2069fe474883803df35494add3af52868881
     function resetShippingSummary(message = 'Belum dipilih') {
         selectedShippingOptionInput.value = '';
         summaryShipping.textContent = message;
@@ -312,6 +411,94 @@
         showShippingFeedback('Metode ambil di basecamp dipilih. Ongkir tidak dikenakan.', 'success');
     }
 
+<<<<<<< HEAD
+=======
+    function renderSentPacitanOptions() {
+        const expressPrice  = Math.ceil(totalWeightKg) * 10000;
+        const regularPrice  = Math.ceil(totalWeightKg) * 7000;
+
+        shippingOptionsContainer.innerHTML = `
+            <div class="rounded-2xl border border-white/10 bg-white/5 p-4">
+                <div class="text-white font-semibold mb-4">${sentPacitanLabel}</div>
+                <div class="space-y-3">
+                    <label class="block cursor-pointer rounded-2xl border border-white/10 bg-black/10 px-4 py-4 transition hover:border-purple-400/40">
+                        <div class="flex items-start gap-3">
+                            <input type="radio" name="shipping_option_picker"
+                                value="${sentPacitanExpressOption}"
+                                data-quote-id="${sentPacitanExpressOption}"
+                                data-courier-name="${sentPacitanLabel}"
+                                data-service-name="Express"
+                                data-price="${expressPrice}"
+                                data-etd="1"
+                                class="mt-1">
+                            <div class="flex-1">
+                                <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                                    <div>
+                                        <div class="text-white font-semibold">Express</div>
+                                        <div class="text-xs text-gray-400">Rp 10.000/kg · ${totalWeightKg.toFixed(2)} kg</div>
+                                    </div>
+                                    <div class="text-right">
+                                        <div class="text-purple-300 font-semibold">${formatRupiah(expressPrice)}</div>
+                                        <div class="text-xs text-gray-400">Estimasi H+1</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </label>
+
+                    <label class="block cursor-pointer rounded-2xl border border-white/10 bg-black/10 px-4 py-4 transition hover:border-purple-400/40">
+                        <div class="flex items-start gap-3">
+                            <input type="radio" name="shipping_option_picker"
+                                value="${sentPacitanRegularOption}"
+                                data-quote-id="${sentPacitanRegularOption}"
+                                data-courier-name="${sentPacitanLabel}"
+                                data-service-name="Reguler"
+                                data-price="${regularPrice}"
+                                data-etd="2"
+                                class="mt-1">
+                            <div class="flex-1">
+                                <div class="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                                    <div>
+                                        <div class="text-white font-semibold">Reguler</div>
+                                        <div class="text-xs text-gray-400">Rp 7.000/kg · ${totalWeightKg.toFixed(2)} kg</div>
+                                    </div>
+                                    <div class="text-right">
+                                        <div class="text-purple-300 font-semibold">${formatRupiah(regularPrice)}</div>
+                                        <div class="text-xs text-gray-400">Estimasi H+2</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </label>
+                </div>
+            </div>
+        `;
+
+        // Attach event listener ke radio
+        const radios = shippingOptionsContainer.querySelectorAll('input[name="shipping_option_picker"]');
+        radios.forEach(function(radio) {
+            radio.addEventListener('change', function() {
+                applySelectedShipping({
+                    quoteId:     this.dataset.quoteId,
+                    courierName: this.dataset.courierName,
+                    serviceName: this.dataset.serviceName,
+                    price:       Number(this.dataset.price || 0),
+                    etd:         this.dataset.etd || '',
+                });
+            });
+        });
+
+        // Auto-pilih express sebagai default
+        radios[0].checked = true;
+        radios[0].dispatchEvent(new Event('change'));
+    }
+
+    function selectSentPacitan() {
+        renderSentPacitanOptions();
+        showShippingFeedback('Metode pengiriman area Pacitan dipilih.', 'success');
+    }
+
+>>>>>>> 9e8c2069fe474883803df35494add3af52868881
     function renderShippingOptions(groups) {
         shippingOptionsContainer.innerHTML = '';
         resetShippingSummary();
@@ -437,14 +624,22 @@
     function attachShippingReset(selector) {
         document.querySelectorAll(selector).forEach(function(element) {
             element.addEventListener('change', function() {
+<<<<<<< HEAD
                 if (isSelfPickupSelected()) {
+=======
+                if (isSelfPickupSelected() || isSentPacitanSelected()) {
+>>>>>>> 9e8c2069fe474883803df35494add3af52868881
                     return;
                 }
 
                 clearShippingOptions('Periksa ulang ongkir');
             });
             element.addEventListener('input', function() {
+<<<<<<< HEAD
                 if (isSelfPickupSelected()) {
+=======
+                if (isSelfPickupSelected() || isSentPacitanSelected()) {
+>>>>>>> 9e8c2069fe474883803df35494add3af52868881
                     return;
                 }
 
@@ -551,9 +746,13 @@
             persistSelectedDestination(payload);
         }
 
+<<<<<<< HEAD
         if (!isSelfPickupSelected()) {
             clearShippingOptions('Periksa ulang ongkir');
         }
+=======
+        syncShippingMethodAvailability();
+>>>>>>> 9e8c2069fe474883803df35494add3af52868881
     }
 
     function clearSelectedDestination(preserveKeyword = false) {
@@ -578,9 +777,13 @@
 
         hideDestinationResults();
         removePersistedDestination();
+<<<<<<< HEAD
         if (!isSelfPickupSelected()) {
             clearShippingOptions('Periksa ulang ongkir');
         }
+=======
+        syncShippingMethodAvailability();
+>>>>>>> 9e8c2069fe474883803df35494add3af52868881
     }
 
     function renderDestinationResults(results) {
@@ -710,6 +913,11 @@
     }
 
     document.addEventListener('DOMContentLoaded', function() {
+<<<<<<< HEAD
+=======
+        syncShippingMethodAvailability();
+
+>>>>>>> 9e8c2069fe474883803df35494add3af52868881
         attachShippingReset('#postal_code, textarea[name="alamat_lengkap"]');
 
         if (isGeneralBuyer) {
@@ -721,6 +929,11 @@
                     if (shippingDestinationIdInput.value && this.value.trim() !== shippingDestinationLabelInput.value) {
                         clearSelectedDestination(true);
                     }
+<<<<<<< HEAD
+=======
+
+                    syncShippingMethodAvailability();
+>>>>>>> 9e8c2069fe474883803df35494add3af52868881
                 });
 
                 destinationKeywordInput.addEventListener('keydown', function(event) {
@@ -769,6 +982,11 @@
 
             if (oldSelectedShippingOption === selfPickupOption) {
                 selectSelfPickup();
+<<<<<<< HEAD
+=======
+            } else if (oldSelectedShippingOption === sentPacitanExpressOption || oldSelectedShippingOption === sentPacitanRegularOption) {
+                selectSentPacitan();
+>>>>>>> 9e8c2069fe474883803df35494add3af52868881
             } else if (oldSelectedShippingOption && shippingDestinationIdInput.value) {
                 setTimeout(loadShippingOptions, 250);
             }
@@ -777,10 +995,33 @@
         if (!isGeneralBuyer) {
             if (oldSelectedShippingOption === selfPickupOption) {
                 selectSelfPickup();
+<<<<<<< HEAD
+=======
+            } else if (oldSelectedShippingOption === sentPacitanExpressOption || oldSelectedShippingOption === sentPacitanRegularOption) {
+                selectSentPacitan();
+>>>>>>> 9e8c2069fe474883803df35494add3af52868881
             } else {
                 setTimeout(loadShippingOptions, 250);
             }
         }
+<<<<<<< HEAD
+=======
+
+        if (sentPacitanButton) {
+            sentPacitanButton.addEventListener('click', function() {
+                selectSentPacitan();
+            });
+        }
+
+        // Auto-select radio yang sesuai kalau ini hasil re-render setelah validation error
+        if (oldSelectedShippingOption === sentPacitanExpressOption || oldSelectedShippingOption === sentPacitanRegularOption) {
+            const targetRadio = shippingOptionsContainer.querySelector(`input[value="${oldSelectedShippingOption}"]`);
+            if (targetRadio) {
+                targetRadio.checked = true;
+                targetRadio.dispatchEvent(new Event('change'));
+            }
+        }
+>>>>>>> 9e8c2069fe474883803df35494add3af52868881
     });
 
     shippingButton.addEventListener('click', function() {

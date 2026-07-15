@@ -26,6 +26,10 @@ class CheckoutController extends Controller
     protected const SELF_PICKUP_CODE = 'pickup';
     protected const SELF_PICKUP_NAME = 'Ambil di Basecamp';
     protected const SELF_PICKUP_SERVICE_NAME = 'Self Pickup';
+    protected const PACITAN_EXPRESS_OPTION = 'pacitan_express';
+    protected const PACITAN_REGULAR_OPTION = 'pacitan_reguler';
+    protected const PACITAN_COURIER_CODE   = 'pacitan';
+    protected const PACITAN_NAME           = 'Pengiriman Area Pacitan';
 
     public function show()
     {
@@ -52,6 +56,9 @@ class CheckoutController extends Controller
             'provinsi' => $isGeneralBuyer ? Province::orderBy('name')->get() : collect(),
             'selfPickupOption' => static::SELF_PICKUP_OPTION,
             'selfPickupLabel' => static::SELF_PICKUP_NAME,
+            'sentPacitanExpressOption' => static::PACITAN_EXPRESS_OPTION,
+            'sentPacitanRegularOption' => static::PACITAN_REGULAR_OPTION,
+            'sentPacitanLabel' => static::PACITAN_NAME,
         ]);
     }
 
@@ -142,55 +149,57 @@ class CheckoutController extends Controller
 
     public function store(Request $request, RajaOngkirDestinationResolver $destinationResolver, RajaOngkirCostService $costService)
     {
-        $user = auth()->user()->load('detail');
+        $user           = auth()->user()->load('detail');
         $isGeneralBuyer = $user->isGeneralBuyer();
-        $isSelfPickup = $this->isSelfPickupSelection($request->input('selected_shipping_option'));
+        $isSelfPickup   = $this->isSelfPickupSelection($request->input('selected_shipping_option'));
+        $isSentPacitan  = $this->isPacitanSelection($request->input('selected_shipping_option')); // BARU
         $usesSelectedDestination = $this->hasSelectedDestination($request);
-        $hasLegacyLocationCodes = $this->hasLegacyLocationCodes($request);
+        $hasLegacyLocationCodes  = $this->hasLegacyLocationCodes($request);
 
         $rules = [
             'selected_shipping_option' => 'required|string',
             'postal_code' => 'nullable|string|max:10',
-            'notes' => 'nullable|string',
+            'notes'       => 'nullable|string',
         ];
 
         if ($isGeneralBuyer) {
             $rules = array_merge($rules, [
-                'name' => 'required|string|max:100',
-                'email' => ['required', 'email', Rule::unique('users', 'email')->ignore($user->id)],
-                'no_hp' => 'required|string|min:10|max:15|regex:/^[0-9]+$/',
+                'name'         => 'required|string|max:100',
+                'email'        => ['required', 'email', Rule::unique('users', 'email')->ignore($user->id)],
+                'no_hp'        => 'required|string|min:10|max:15|regex:/^[0-9]+$/',
                 'alamat_lengkap' => 'required|string',
             ]);
 
-            if (!$isSelfPickup) {
+            // Pacitan & self pickup tidak butuh validasi destination
+            if (!$isSelfPickup && !$isSentPacitan) {
                 if ($usesSelectedDestination) {
                     $rules = array_merge($rules, [
-                        'shipping_destination_id' => 'required|string',
+                        'shipping_destination_id'    => 'required|string',
                         'shipping_destination_label' => 'required|string',
-                        'provinsi_name' => 'required|string',
+                        'provinsi_name'  => 'required|string',
                         'kabupaten_name' => 'required|string',
                         'kecamatan_name' => 'required|string',
-                        'desa_name' => 'nullable|string',
+                        'desa_name'      => 'nullable|string',
                     ]);
                 } elseif ($hasLegacyLocationCodes) {
                     $this->mergeLaravoltLocationNames($request);
 
                     $rules = array_merge($rules, [
-                        'provinsi_code' => 'required',
-                        'provinsi_name' => 'required',
+                        'provinsi_code'  => 'required',
+                        'provinsi_name'  => 'required',
                         'kabupaten_code' => 'required',
                         'kabupaten_name' => 'required',
                         'kecamatan_code' => 'required',
                         'kecamatan_name' => 'required',
-                        'desa_code' => 'required',
-                        'desa_name' => 'required',
+                        'desa_code'      => 'required',
+                        'desa_name'      => 'required',
                     ]);
                 } else {
                     $rules = array_merge($rules, [
-                        'provinsi_name' => 'required|string',
+                        'provinsi_name'  => 'required|string',
                         'kabupaten_name' => 'required|string',
                         'kecamatan_name' => 'required|string',
-                        'desa_name' => 'nullable|string',
+                        'desa_name'      => 'nullable|string',
                     ]);
                 }
             }
@@ -234,10 +243,19 @@ class CheckoutController extends Controller
             $subtotal += $item->quantity * $merchandise->currentPrice();
         }
 
-        $destination = null;
+        $destination   = null;
         $selectedQuote = $this->selfPickupQuote();
 
-        if (!$isSelfPickup) {
+        if ($isSentPacitan) {
+            // Hitung total berat dari cart
+            $totalWeightGram = $cart->items->sum(
+                fn($item) => ($item->merchandise->weight ?? 0) * $item->quantity
+            );
+            $selectedQuote = $this->pacitanQuote(
+                $request->input('selected_shipping_option'),
+                $totalWeightGram
+            );
+        } elseif (!$isSelfPickup) {
             try {
                 $destination = $this->resolveShippingDestination($request, $user, $destinationResolver);
                 $quotes = $this->getLiveShippingOptions(
@@ -255,44 +273,44 @@ class CheckoutController extends Controller
 
         $order = DB::transaction(function () use ($cart, $request, $user, $subtotal, $selectedQuote, $destination) {
             $order = Order::create([
-                'invoice_number' => $this->generateInvoiceNumber(),
-                'user_id' => $user->id,
-                'expedition_id' => $selectedQuote['expedition_id'],
-                'expedition_name' => $selectedQuote['expedition_name'],
-                'expedition_code' => $selectedQuote['courier_code'],
+                'invoice_number'          => $this->generateInvoiceNumber(),
+                'user_id'                 => $user->id,
+                'expedition_id'           => $selectedQuote['expedition_id'],
+                'expedition_name'         => $selectedQuote['expedition_name'],
+                'expedition_code'         => $selectedQuote['courier_code'],
                 'expedition_service_name' => $selectedQuote['service_name'],
                 'expedition_service_code' => $selectedQuote['service_code'],
-                'recipient_name' => $user->name,
-                'recipient_email' => $user->email,
-                'recipient_phone' => $user->no_hp,
-                'province_name' => $user->detail->provinsi_name,
-                'city_name' => $user->detail->kabupaten_name,
-                'district_name' => $user->detail->kecamatan_name,
-                'village_name' => $user->detail->desa_name,
-                'postal_code' => $request->postal_code,
+                'recipient_name'          => $user->name,
+                'recipient_email'         => $user->email,
+                'recipient_phone'         => $user->no_hp,
+                'province_name'           => $user->detail->provinsi_name,
+                'city_name'               => $user->detail->kabupaten_name,
+                'district_name'           => $user->detail->kecamatan_name,
+                'village_name'            => $user->detail->desa_name,
+                'postal_code'             => $request->postal_code,
                 'shipping_destination_id' => $destination['id'] ?? null,
-                'full_address' => $this->resolveOrderAddress($user, $selectedQuote),
-                'notes' => $request->notes,
-                'shipping_fee' => $selectedQuote['price'],
-                'shipping_etd' => $selectedQuote['etd'],
-                'subtotal' => $subtotal,
-                'total' => $subtotal + $selectedQuote['price'],
-                'status' => Order::STATUS_WAITING_PAYMENT,
-                'payment_due_at' => now()->addHours(AppSetting::paymentDueHours()),
+                'full_address'            => $this->resolveOrderAddress($user, $selectedQuote),
+                'notes'                   => $request->notes,
+                'shipping_fee'            => $selectedQuote['price'],
+                'shipping_etd'            => $selectedQuote['etd'],
+                'subtotal'                => $subtotal,
+                'total'                   => $subtotal + $selectedQuote['price'],
+                'status'                  => Order::STATUS_WAITING_PAYMENT,
+                'payment_due_at'          => now()->addHours(AppSetting::paymentDueHours()),
             ]);
 
             foreach ($cart->items as $item) {
                 $merchandise = $item->merchandise;
 
                 $order->items()->create([
-                    'merchandise_id' => $merchandise->id,
-                    'merchandise_name' => $merchandise->name,
-                    'merchandise_slug' => $merchandise->slug,
+                    'merchandise_id'    => $merchandise->id,
+                    'merchandise_name'  => $merchandise->name,
+                    'merchandise_slug'  => $merchandise->slug,
                     'merchandise_image' => $merchandise->image,
-                    'unit_price' => $merchandise->currentPrice(),
-                    'quantity' => $item->quantity,
-                    'weight' => $merchandise->weight,
-                    'subtotal' => $item->quantity * $merchandise->currentPrice(),
+                    'unit_price'        => $merchandise->currentPrice(),
+                    'quantity'          => $item->quantity,
+                    'weight'            => $merchandise->weight,
+                    'subtotal'          => $item->quantity * $merchandise->currentPrice(),
                 ]);
 
                 $merchandise->decrement('qty_stock', $item->quantity);
@@ -305,6 +323,30 @@ class CheckoutController extends Controller
 
         return redirect()->route('orders.show', $order)
             ->with('success', 'Invoice berhasil dibuat. Silakan lanjutkan pembayaran.');
+    }
+
+    private function isPacitanSelection(string $option): bool
+    {
+        return in_array($option, [static::PACITAN_EXPRESS_OPTION, static::PACITAN_REGULAR_OPTION]);
+    }
+
+    private function pacitanQuote(string $option, int $totalWeightGram): array
+    {
+        $weightKg  = $totalWeightGram / 1000;
+        $ratePerKg = $option === static::PACITAN_EXPRESS_OPTION ? 10000 : 7000;
+        $price     = (int) ceil($weightKg) * $ratePerKg;
+        $etd       = $option === static::PACITAN_EXPRESS_OPTION ? '1' : '2';
+        $service   = $option === static::PACITAN_EXPRESS_OPTION ? 'Express' : 'Reguler';
+
+        return [
+            'expedition_id'   => null,
+            'expedition_name' => static::PACITAN_NAME,
+            'courier_code'    => static::PACITAN_COURIER_CODE,
+            'service_name'    => $service,
+            'service_code'    => $option,
+            'price'           => $price,
+            'etd'             => $etd,
+        ];
     }
 
     protected function generateInvoiceNumber()

@@ -276,7 +276,10 @@
             <div class="hidden md:flex items-center space-x-8 text-sm font-medium">
                 <a href="/" class="nav-link {{ request()->routeIs('landing.home') ? 'text-purple-300' : 'text-gray-200' }} font-semibold hover:text-purple-300 transition">Home</a>
                 <a href="/program" class="nav-link {{ request()->is('program') ? 'text-purple-300' : 'text-gray-200' }} hover:text-purple-300 transition">Program</a>
+<<<<<<< HEAD
                 <a href="/portal" class="nav-link {{ request()->is('portal') ? 'text-purple-300' : 'text-gray-200' }} hover:text-purple-300 transition">Portal</a>
+=======
+>>>>>>> 9e8c2069fe474883803df35494add3af52868881
                 <a href="/merchandise" class="nav-link {{ request()->is('merchandise') ? 'text-purple-300' : 'text-gray-200' }} hover:text-purple-300 transition">Merchandise</a>
                 {{-- Keranjang --}}
                 <a href="{{ auth()->check() ? route('cart.index') : route('login') }}" class="relative inline-flex text-gray-200 hover:text-purple-300 transition" title="Keranjang belanja">
@@ -319,7 +322,10 @@
             class="md:hidden hidden flex-col bg-[#0f0f23]/90 backdrop-blur-xl border-t border-purple-500/20 px-6 pb-5 space-y-4 text-base font-medium">
             <a href="/" class="nav-link block py-2 text-gray-200 hover:text-purple-300">Home</a>
             <a href="/program" class="nav-link block py-2 text-gray-200 hover:text-purple-300">Program</a>
+<<<<<<< HEAD
             <a href="/portal" class="nav-link block py-2 text-gray-200 hover:text-purple-300">Portal</a>
+=======
+>>>>>>> 9e8c2069fe474883803df35494add3af52868881
             <a href="{{ route('merchandise') }}" class="nav-link block py-2 text-gray-200 hover:text-purple-300">Merchandise</a>
             @if(auth()->check())
             <a href="{{ route('orders.index') }}" class="nav-link block py-2 text-gray-200 hover:text-purple-300">Invoice</a>

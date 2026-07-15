@@ -7,6 +7,7 @@ use App\Models\BankAccount;
 use App\Models\Merchandise;
 use App\Models\Order;
 use App\Services\Shipping\RajaOngkirDeliveryService;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -64,13 +65,47 @@ class OrderController extends Controller
         return back()->with('success', 'Bukti transfer berhasil diunggah.');
     }
 
-    public function adminIndex()
+    public function adminIndex(Request $request)
     {
         $this->expireOverdueOrders();
 
+        $startDateInput = $request->input('start_date');
+        $endDateInput   = $request->input('end_date');
+
+        $startDate = $startDateInput ? Carbon::parse($startDateInput)->startOfDay() : null;
+        $endDate   = $endDateInput ? Carbon::parse($endDateInput)->endOfDay() : null;
+
+        $query = Order::with('user')->latest();
+
+        if ($startDate && $endDate) {
+            $query->whereBetween('created_at', [$startDate, $endDate]);
+        }
+
+        $orders = $query->get();
+
+        // Hitung stats dari orders yang sudah kena filter tanggal (kalau ada),
+        // supaya box rekap ikut menyesuaikan filter.
+        $paidOrders = $orders->where('status', 'paid');
+
+        $grossRevenue   = (float) $paidOrders->sum('total');
+        $shippingTotal  = (float) $paidOrders->sum('shipping_fee');
+
+        $stats = [
+            'paid_count'                 => $paidOrders->count(),
+            'waiting_verification_count' => $orders->where('status', 'waiting_verification')->count(),
+            'expired_count'               => $orders->where('status', 'expired')->count(),
+            'rejected_count'              => $orders->where('status', 'payment_rejected')->count(),
+            'gross_revenue'               => $grossRevenue,
+            'shipping_total'              => $shippingTotal,
+            'net_revenue'                 => $grossRevenue - $shippingTotal,
+        ];
+
         return view('order.index', [
-            'title' => 'Data Invoice Merchandise',
-            'orders' => Order::with('user')->latest()->get(),
+            'title'     => 'Data Invoice Merchandise',
+            'orders'    => $orders,
+            'stats'     => $stats,
+            'startDate' => $startDateInput,
+            'endDate'   => $endDateInput,
         ]);
     }
 

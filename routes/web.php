@@ -1,12 +1,12 @@
 <?php
 
-use App\Http\Controllers\AuthController;
 use App\Http\Controllers\AdminMerchandiseController;
 use App\Http\Controllers\AdminProgramController;
+use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BankAccountController;
 use App\Http\Controllers\CartController;
-use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ExpeditionController;
 use App\Http\Controllers\FilmController;
@@ -14,8 +14,8 @@ use App\Http\Controllers\LandingController;
 use App\Http\Controllers\LandingProgramController;
 use App\Http\Controllers\MerchandiseCategoryController;
 use App\Http\Controllers\OrderController;
-use App\Http\Controllers\PublicStorageController;
 use App\Http\Controllers\ProgramCategoryController;
+use App\Http\Controllers\PublicStorageController;
 use App\Http\Controllers\SubmissionReviewController;
 use App\Http\Controllers\SubmissionSettingController;
 use App\Http\Controllers\UserController;
@@ -23,7 +23,6 @@ use App\Http\Controllers\UserDetailController;
 use App\Models\SubmissionSetting;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
-use Laravolt\Indonesia\Models\Province;
 
 /*
 |--------------------------------------------------------------------------
@@ -66,8 +65,8 @@ Route::get('/ekshibisi/paud', function () {
     return view('landing.kategori.ekshibisis.paud');
 });
 Route::get('/download/ekatalog', function () {
-    $setting = SubmissionSetting::current();
-    $catalogFile = optional($setting)->last_year_catalog_file;
+    $setting          = SubmissionSetting::current();
+    $catalogFile      = optional($setting)->last_year_catalog_file;
     $legacyCatalogUrl = optional($setting)->last_year_catalog_url;
 
     \App\Models\DownloadLog::updateOrCreate(
