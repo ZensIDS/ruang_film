@@ -736,11 +736,7 @@ class SubmissionReviewFlowTest extends TestCase
             ->assertOk()
             ->assertSeeTextInOrder(['Submitted', 'Saat ini'])
             ->assertDontSeeText('Verified Saat ini')
-<<<<<<< HEAD
-            ->assertDontSeeText('Dalam Kurasi Saat ini');
-=======
             ->assertDontSeeText('Under Review Saat ini');
->>>>>>> 9e8c2069fe474883803df35494add3af52868881
     }
 
     public function test_film_show_timeline_uses_verified_status_after_admin_verification()
@@ -756,11 +752,7 @@ class SubmissionReviewFlowTest extends TestCase
             ->get(route('film.show', $film))
             ->assertOk()
             ->assertSeeTextInOrder(['Verified', 'Saat ini'])
-<<<<<<< HEAD
-            ->assertDontSeeText('Dalam Kurasi Saat ini');
-=======
             ->assertDontSeeText('Under Review Saat ini');
->>>>>>> 9e8c2069fe474883803df35494add3af52868881
     }
 
     public function test_film_show_timeline_uses_the_same_under_review_status_seen_by_participants()
@@ -775,11 +767,7 @@ class SubmissionReviewFlowTest extends TestCase
         $this->actingAs($film->user)
             ->get(route('film.show', $film))
             ->assertOk()
-<<<<<<< HEAD
-            ->assertSeeTextInOrder(['Dalam Kurasi', 'Saat ini'])
-=======
             ->assertSeeTextInOrder(['Under Review', 'Saat ini'])
->>>>>>> 9e8c2069fe474883803df35494add3af52868881
             ->assertDontSeeText('Dalam Penentuan Saat ini');
     }
 
@@ -811,11 +799,7 @@ class SubmissionReviewFlowTest extends TestCase
         $this->actingAs($film->user)
             ->get(route('film.show', $film))
             ->assertOk()
-<<<<<<< HEAD
-            ->assertSeeTextInOrder(['Dalam Kurasi', 'Saat ini'])
-=======
             ->assertSeeTextInOrder(['Under Review', 'Saat ini'])
->>>>>>> 9e8c2069fe474883803df35494add3af52868881
             ->assertDontSeeText('Shortlist Saat ini');
     }
 

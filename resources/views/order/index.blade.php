@@ -4,8 +4,6 @@
     <h1>Invoice Merchandise</h1>
 </section>
 <section class="content">
-<<<<<<< HEAD
-=======
 <div class="box box-default">
     <div class="box-header with-border">
         <h3 class="box-title"><i class="fa fa-file"></i> Rekap Merchandise</h3>
@@ -122,7 +120,6 @@
         </div>
     </div>
 
->>>>>>> 9e8c2069fe474883803df35494add3af52868881
     <div class="row">
         <div class="col-xs-12">
             <div class="box">
@@ -164,8 +161,6 @@
         </div>
     </div>
 </section>
-<<<<<<< HEAD
-=======
 
 {{-- CSS & JS ditaruh langsung di sini (bukan @push) supaya pasti ke-render
      walau layouts.master tidak punya @stack('css') / @stack('scripts').
@@ -279,5 +274,4 @@
     }
 })();
 </script>
->>>>>>> 9e8c2069fe474883803df35494add3af52868881
 @endsection

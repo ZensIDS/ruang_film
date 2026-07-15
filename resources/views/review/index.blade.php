@@ -81,12 +81,6 @@
                                 <th>Judul Film</th>
                                 <th>Durasi Film</th>
                                 <th>Tautan Film</th>
-<<<<<<< HEAD
-                                @foreach($rubricItems as $item)
-                                <th>{{ $item->title }}</th>
-                                @endforeach
-                                <th>Total Nilai {{ $currentStageLabel }}</th>
-=======
                                 {{-- Rubric items hanya admin --}}
                                 @if($isAdmin)
                                     @foreach($rubricItems as $item)
@@ -97,7 +91,6 @@
                                 @if($isAdmin)
                                     <th>Total Nilai {{ $currentStageLabel }}</th>
                                 @endif
->>>>>>> 9e8c2069fe474883803df35494add3af52868881
                                 <th>Nilai Per Reviewer</th>
                                 <th>Status & Aksi</th>
                             </tr>
@@ -106,16 +99,6 @@
                             @foreach($films as $film)
                             @php
                                 $curationReviews = $film->submissionReviews->where('stage', \App\Models\ReviewRubric::STAGE_CURATION);
-<<<<<<< HEAD
-                                $juryReviews = $film->submissionReviews->where('stage', \App\Models\ReviewRubric::STAGE_JURY);
-                                $visibleJuryReviews = $isAdmin ? $juryReviews : ($user->hasRole('juri') ? $juryReviews->where('reviewer_id', $user->id) : collect());
-                                $statusClass = $statusClasses[$film->display_status] ?? 'default';
-                                $currentAverage = $stage === \App\Models\ReviewRubric::STAGE_JURY ? $film->jury_average_score : $film->curation_average_score;
-                                $currentCount = $stage === \App\Models\ReviewRubric::STAGE_JURY ? $film->jury_review_count : $film->curation_review_count;
-                                $jam = floor($film->duration / 3600);
-                                $menit = floor(($film->duration % 3600) / 60);
-                                $sisa = $film->duration % 60;
-=======
                                 $juryReviews     = $film->submissionReviews->where('stage', \App\Models\ReviewRubric::STAGE_JURY);
 
                                 // Juri hanya lihat nilai miliknya sendiri
@@ -141,7 +124,6 @@
                                 $jam   = floor($film->duration / 3600);
                                 $menit = floor(($film->duration % 3600) / 60);
                                 $sisa  = $film->duration % 60;
->>>>>>> 9e8c2069fe474883803df35494add3af52868881
                             @endphp
                             <tr>
                                 <td>{{ $loop->iteration }}</td>
@@ -159,28 +141,6 @@
                                     <a href="{{ $film->trailer }}" target="_blank" class="btn btn-default btn-xs">Trailer</a>
                                     <a href="{{ route('film.show', $film) }}" class="btn btn-info btn-xs">Detail</a>
                                 </td>
-<<<<<<< HEAD
-                                @foreach($rubricItems as $item)
-                                @php
-                                    $summary = $film->rubric_item_summaries->get($item->id);
-                                @endphp
-                                <td style="min-width:150px;">
-                                    @if($summary && $summary['avg_weighted_score'] !== null)
-                                    <strong>{{ number_format((float) $summary['avg_weighted_score'], 2) }}</strong><br>
-                                    <small>Skor {{ number_format((float) $summary['avg_score'], 2) }}</small>
-                                        @if($isAdmin)
-                                        <div style="margin-top:4px;">
-                                            @foreach($summary['reviewers'] as $reviewerScore)
-                                            <div><small>{{ $reviewerScore['reviewer'] }}: {{ number_format((float) $reviewerScore['weighted_score'], 2) }}</small></div>
-                                            @endforeach
-                                        </div>
-                                        @endif
-                                    @else
-                                    -
-                                    @endif
-                                </td>
-                                @endforeach
-=======
 
                                 {{-- Rubric item cells hanya admin --}}
                                 @if($isAdmin)
@@ -204,42 +164,10 @@
 
                                 {{-- Total Nilai hanya admin --}}
                                 @if($isAdmin)
->>>>>>> 9e8c2069fe474883803df35494add3af52868881
                                 <td>
                                     <strong>{{ number_format($currentAverage, 2) }}</strong><br>
                                     <small>{{ $currentCount }} reviewer</small>
                                 </td>
-<<<<<<< HEAD
-                                <td style="min-width:260px;">
-                                    @if($curationReviews->count())
-                                    <div><strong>Kurator</strong></div>
-                                    @foreach($curationReviews as $review)
-                                    <div style="margin-bottom:4px;">
-                                        <small>{{ $review->reviewer->name ?? 'Kurator' }}: {{ number_format((float) $review->total_score, 2) }}</small>
-                                        @if($review->note)
-                                        <br><small class="text-muted">{{ $review->note }}</small>
-                                        @endif
-                                    </div>
-                                    @endforeach
-                                    @endif
-
-                                    @if($visibleJuryReviews->count())
-                                    <div style="margin-top:8px;"><strong>Juri</strong></div>
-                                    @foreach($visibleJuryReviews as $review)
-                                    <div style="margin-bottom:4px;">
-                                        <small>{{ $review->reviewer->name ?? 'Juri' }}: {{ number_format((float) $review->total_score, 2) }}</small>
-                                        @if($review->note)
-                                        <br><small class="text-muted">{{ $review->note }}</small>
-                                        @endif
-                                    </div>
-                                    @endforeach
-                                    @endif
-
-                                    @if(!$curationReviews->count() && !$visibleJuryReviews->count())
-                                    -
-                                    @endif
-                                </td>
-=======
                                 @endif
 
                                 {{-- Nilai Per Reviewer — sesuai role --}}
@@ -283,23 +211,11 @@
                                 </td>
 
                                 {{-- Status & Aksi --}}
->>>>>>> 9e8c2069fe474883803df35494add3af52868881
                                 <td style="min-width:220px;">
                                     <span class="label label-{{ $statusClass }}">{{ $film->display_status_label }}</span>
 
                                     <div style="margin-top:8px;">
                                         @if($canCurate && in_array($film->curation_status, \App\Models\Film::curatorReviewableStatuses(), true))
-<<<<<<< HEAD
-                                        <a href="{{ route('review.score', [$film, \App\Models\ReviewRubric::STAGE_CURATION]) }}" class="btn btn-warning btn-xs" style="margin-bottom:6px;">
-                                            Nilai Kurasi
-                                        </a>
-                                        @endif
-
-                                        @if($canJudge && $film->curation_status === \App\Models\Film::CURATION_APPROVED && (int) $film->category_id === (int) $user->category_id)
-                                        <a href="{{ route('review.score', [$film, \App\Models\ReviewRubric::STAGE_JURY]) }}" class="btn btn-success btn-xs" style="margin-bottom:6px;">
-                                            Nilai Juri
-                                        </a>
-=======
                                             <a href="{{ route('review.score', [$film, \App\Models\ReviewRubric::STAGE_CURATION]) }}" class="btn btn-warning btn-xs" style="margin-bottom:6px;">
                                                 Nilai Kurasi
                                             </a>
@@ -309,7 +225,6 @@
                                             <a href="{{ route('review.score', [$film, \App\Models\ReviewRubric::STAGE_JURY]) }}" class="btn btn-success btn-xs" style="margin-bottom:6px;">
                                                 Nilai Juri
                                             </a>
->>>>>>> 9e8c2069fe474883803df35494add3af52868881
                                         @endif
                                     </div>
 
@@ -330,35 +245,20 @@
                                             </span>
                                         </div>
                                     </form>
-<<<<<<< HEAD
-                                    @endif
-
-                                    @if($isAdmin && $film->curation_status === \App\Models\Film::CURATION_APPROVED)
-=======
 
                                     @if($film->curation_status === \App\Models\Film::CURATION_APPROVED)
->>>>>>> 9e8c2069fe474883803df35494add3af52868881
                                     <form action="{{ route('review.winner-rank', $film) }}" method="POST" style="margin-top:8px;">
                                         @csrf
                                         @method('PATCH')
                                         <div class="input-group input-group-sm">
                                             <select name="winner_rank" class="form-control">
                                                 <option value="" disabled {{ old('winner_rank', $film->winner_rank) === null ? 'selected' : '' }}>-- Pilih Juara --</option>
-<<<<<<< HEAD
-                                                <option value="JUARA 1" {{ old('winner_rank', $film->winner_rank) == 'JUARA 1' ? 'selected' : '' }}>JUARA 1</option>
-                                                <option value="JUARA 2" {{ old('winner_rank', $film->winner_rank) == 'JUARA 2' ? 'selected' : '' }}>JUARA 2</option>
-                                                <option value="JUARA 3" {{ old('winner_rank', $film->winner_rank) == 'JUARA 3' ? 'selected' : '' }}>JUARA 3</option>
-                                                <option value="HARAPAN 1" {{ old('winner_rank', $film->winner_rank) == 'HARAPAN 1' ? 'selected' : '' }}>HARAPAN 1</option>
-                                                <option value="HARAPAN 2" {{ old('winner_rank', $film->winner_rank) == 'HARAPAN 2' ? 'selected' : '' }}>HARAPAN 2</option>
-                                                <option value="HARAPAN 3" {{ old('winner_rank', $film->winner_rank) == 'HARAPAN 3' ? 'selected' : '' }}>HARAPAN 3</option>
-=======
                                                 <option value="JUARA 1"        {{ old('winner_rank', $film->winner_rank) == 'JUARA 1'        ? 'selected' : '' }}>JUARA 1</option>
                                                 <option value="JUARA 2"        {{ old('winner_rank', $film->winner_rank) == 'JUARA 2'        ? 'selected' : '' }}>JUARA 2</option>
                                                 <option value="JUARA 3"        {{ old('winner_rank', $film->winner_rank) == 'JUARA 3'        ? 'selected' : '' }}>JUARA 3</option>
                                                 <option value="HARAPAN 1"      {{ old('winner_rank', $film->winner_rank) == 'HARAPAN 1'      ? 'selected' : '' }}>HARAPAN 1</option>
                                                 <option value="HARAPAN 2"      {{ old('winner_rank', $film->winner_rank) == 'HARAPAN 2'      ? 'selected' : '' }}>HARAPAN 2</option>
                                                 <option value="HARAPAN 3"      {{ old('winner_rank', $film->winner_rank) == 'HARAPAN 3'      ? 'selected' : '' }}>HARAPAN 3</option>
->>>>>>> 9e8c2069fe474883803df35494add3af52868881
                                                 <option value="SPECIAL MENTION" {{ old('winner_rank', $film->winner_rank) == 'SPECIAL MENTION' ? 'selected' : '' }}>SPECIAL MENTION</option>
                                             </select>
                                             <span class="input-group-btn">
@@ -366,28 +266,7 @@
                                             </span>
                                         </div>
                                     </form>
-<<<<<<< HEAD
-                                    <form action="{{ route('review.nominate', $film) }}" method="POST" style="margin-top:8px;">
-                                        @csrf
-                                        @method('PATCH')
-                                        <div class="input-group input-group-sm">
-                                            <select name="nominate" class="form-control">
-                                                <option value="" disabled {{ old('winner_rank', $film->winner_rank) === null ? 'selected' : '' }}>-- Pilih Kategori --</option>
-                                                <option value="Best Director" {{ old('winner_rank', $film->winner_rank) == 'Best Director' ? 'selected' : '' }}>Best Director</option>
-                                                <option value="Best Scenario" {{ old('winner_rank', $film->winner_rank) == 'Best Scenario' ? 'selected' : '' }}>Best Scenario</option>
-                                                <option value="Best Editor" {{ old('winner_rank', $film->winner_rank) == 'Best Editor' ? 'selected' : '' }}>Best Editor</option>
-                                                <option value="Best Cinematography" {{ old('winner_rank', $film->winner_rank) == 'Best Cinematography' ? 'selected' : '' }}>Best Cinematography</option>
-                                                <option value="Lead Actor / Actress" {{ old('winner_rank', $film->winner_rank) == 'Lead Actor / Actress' ? 'selected' : '' }}>Lead Actor / Actress</option>
-                                                <option value="Best Music Scoring" {{ old('winner_rank', $film->winner_rank) == 'Best Music Scoring' ? 'selected' : '' }}>Best Music Scoring</option>
-                                            </select>
-                                            <span class="input-group-btn">
-                                                <button type="submit" class="btn btn-primary btn-flat">Simpan</button>
-                                            </span>
-                                        </div>
-                                    </form>
-=======
                                     @endif
->>>>>>> 9e8c2069fe474883803df35494add3af52868881
                                     @endif
                                 </td>
                             </tr>

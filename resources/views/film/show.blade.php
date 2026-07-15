@@ -11,11 +11,7 @@ if ($participantViewer) {
     $timelineSteps = [
         1 => 'Submitted',
         2 => 'Verified',
-<<<<<<< HEAD
-        3 => 'Dalam Kurasi',
-=======
         3 => 'Under Review',
->>>>>>> 9e8c2069fe474883803df35494add3af52868881
         4 => $film->winner_rank_label ?: ($displayStatus === \App\Models\Film::CURATION_REJECTED ? 'Tidak Lolos' : 'Official Selection'),
     ];
     $currentStepMap = [
@@ -31,11 +27,7 @@ if ($participantViewer) {
     $timelineSteps = [
         1 => 'Submitted',
         2 => 'Verified',
-<<<<<<< HEAD
-        3 => 'Dalam Kurasi',
-=======
         3 => 'Under Review',
->>>>>>> 9e8c2069fe474883803df35494add3af52868881
         4 => 'Shortlist',
         5 => $film->winner_rank_label ?: ($displayStatus === \App\Models\Film::CURATION_REJECTED ? 'Tidak Lolos' : 'Official Selection'),
     ];
@@ -370,10 +362,6 @@ $currentStep = $currentStepMap[$displayStatus] ?? 1;
                             {{-- File & Tautan --}}
                             <div style="background:#fff; border:0.5px solid #e0e0e0; border-radius:10px; padding:16px;">
                                 <div style="font-size:13px; font-weight:600; border-left:3px solid #1db9a0; padding-left:10px; margin-bottom:14px;">File & tautan</div>
-<<<<<<< HEAD
-
-=======
->>>>>>> 9e8c2069fe474883803df35494add3af52868881
                                 {{-- GSM Multiple --}}
                                 <div style="margin-bottom:14px;">
                                     @php
