@@ -156,10 +156,10 @@
                                     class="fas fa-check-circle text-purple-400 mt-1 text-sm"></i><span>Setiap peserta/tim boleh mengirimkan lebih dari satu
                                     karya.</span>
                             </li>
-                            <li class="flex items-start gap-3">
+                            {{--  <li class="flex items-start gap-3">
                                 <i
                                     class="fas fa-check-circle text-purple-400 mt-1 text-sm"></i><span>Tahun produksi film minimal tahun 2023.</span>
-                            </li>
+                            </li>  --}}
                             <li class="flex items-start gap-3">
                                 <i
                                     class="fas fa-check-circle text-purple-400 mt-1 text-sm"></i><span>Karya harus merupakan hasil orisinal, bukan hasil
@@ -194,6 +194,13 @@
                                     relevan atau berkaitan dengan Festival Film Horor
                                     2026.</span>
                             </li>
+                            <li class="flex items-start gap-3">
+                                <i
+                                    class="fas fa-check-circle text-purple-400 mt-1 text-sm"></i><span>Peserta wajib mengunggah/repost poster resmi
+                                        Festival Film Horor 2026 di story instagram pribadi/komunitas/PH,
+                                        menandai akun @ruangfilmpacitam & @festivalfilmhoror, mencantumkan tagar
+                                        #FestivalFilmHoror2026 dan #FFH2026, serta melampirkan bukti unggahan (screenshot) pada formulir pendaftaran.</span>
+                            </li>
                         </ul>
                     </div>
 
@@ -214,12 +221,12 @@
                                 <i class="fas fa-clock text-purple-400 mt-1 text-sm"></i><span>Durasi film maksimal 30 menit termasuk opening dan credit
                                     title.</span>
                             </li>
-                            <li class="flex items-start gap-3">
+                            {{--  <li class="flex items-start gap-3">
                                 <i class="fas fa-calendar text-purple-400 mt-1 text-sm"></i><span>Film diproduksi pada tahun 2023 ke atas.</span>
-                            </li>
+                            </li>  --}}
                             <li class="flex items-start gap-3">
-                                <i class="fas fa-award text-purple-400 mt-1 text-sm"></i><span>Film yang sudah memenangkan Festival Film Horor 2025 tidak
-                                    dapat diikutsertakan kembali.</span>
+                                <i class="fas fa-award text-purple-400 mt-1 text-sm"></i><span>Film yang telah disubmit pada FFH 2025 namun belum lolos sebagai
+                                    Official Selection dapat didaftarkan kembali. Film yang pernah menjadi pemenang FFH tidak dapat diikutsertakan kembali.</span>
                             </li>
                             <li class="flex items-start gap-3">
                                 <i class="fas fa-ghost text-purple-400 mt-1 text-sm"></i><span>Genre film wajib bertema horor.</span>

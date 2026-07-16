@@ -77,8 +77,8 @@
                                 <div class="form-group">
                                     <label>Tahun Produksi <span class="text-danger">*</span></label>
                                     <input type="number" name="tahun_produksi" class="form-control"
-                                        placeholder="Tahun Produksi" min="2023" max="2099" required>
-                                    <p class="text-danger">Tahun Produksi Minimal Tahun 2023.</p>
+                                        placeholder="Tahun Produksi" min="1900" max="2099" required>
+                                    {{--  <p class="text-danger">Tahun Produksi Minimal Tahun 2023.</p>  --}}
                                 </div>
                             </div>
                         </div>
