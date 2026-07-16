@@ -1,6 +1,8 @@
 @php
     $collaboratorLogos = [
         'landing/images/collab/col1.png',
+        'landing/images/collab/col6.png',
+        'landing/images/collab/col7.png',
         'landing/images/collab/col2.png',
         'landing/images/collab/col3.png',
         'landing/images/collab/col4.png',
@@ -172,9 +174,11 @@
     </div>
 
     <div class="glass-card mt-12 rounded-3xl p-6 md:p-8 lg:p-10 fade-up transition-all duration-500 hover:shadow-[0_0_35px_rgba(109,40,217,0.2)]">
-        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-6 md:gap-8 items-center justify-items-center">
+        <!-- Mengubah grid menjadi flex wrap dengan justify-center -->
+        <div class="flex flex-wrap justify-center gap-6 md:gap-8 items-center">
             @foreach($collaboratorLogos as $logo)
-            <div class="w-full flex justify-center p-2">
+            <!-- Menentukan lebar item agar persis seperti grid 2, 3, dan 4 kolom -->
+            <div class="w-[calc(50%-12px)] sm:w-[calc(33.333%-22px)] lg:w-[calc(25%-24px)] flex justify-center p-2">
                 <img
                     src="{{ asset($logo) }}"
                     alt="Collaborator Logo"
