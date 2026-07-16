@@ -4,7 +4,7 @@
             LATEST UPDATE
         </p>
         <h2 class="text-3xl md:text-5xl font-bold text-left border-l-8 border-purple-500 pl-6 tracking-tight">
-            Portal Berita
+            Berita
         </h2>
     </div>
 

@@ -47,11 +47,18 @@
 
                     <div>
                         @if($submissionOpen)
-                        <a href="{{ route('register', ['role' => 'peserta']) }}"
-                            class="btn-gradient px-8 md:px-10 py-3 md:py-4 rounded-full text-white font-semibold text-base md:text-lg transition-all duration-300 hover:scale-105 hover:shadow-[0_0_25px_#8B5CF6] inline-flex items-center gap-3 group">
-                            <i class="fas fa-upload text-white group-hover:translate-y-[-2px] transition-transform duration-300"></i>
-                            Submit Film Sekarang
-                        </a>
+                        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                            <a href="{{ route('register', ['role' => 'peserta']) }}"
+                                class="btn-gradient px-8 md:px-10 py-3 md:py-4 rounded-full text-white font-semibold text-base md:text-lg transition-all duration-300 hover:scale-105 hover:shadow-[0_0_25px_#8B5CF6] inline-flex items-center gap-3 group">
+                                <i class="fas fa-upload text-white group-hover:translate-y-[-2px] transition-transform duration-300"></i>
+                                Submit Film Sekarang
+                            </a>
+                            <a href="#competition-section"
+                                class="btn-gradient px-8 md:px-10 py-3 md:py-4 rounded-full text-white font-semibold text-base justify-center md:text-lg transition-all duration-300 hover:scale-105 hover:shadow-[0_0_25px_#8B5CF6] inline-flex items-center gap-3 group">
+                                <i class="fas fa-download text-white group-hover:translate-y-[-2px] transition-transform duration-300"></i>
+                                Unduh Juknis
+                            </a>
+                        </div>
                         @if($landingSetting)
                         <p class="text-gray-300 text-xs mt-4"><b>DITUTUP DALAM</b></p>
                         <div id="countdown-close" class="flex gap-3 mt-2 justify-center">
