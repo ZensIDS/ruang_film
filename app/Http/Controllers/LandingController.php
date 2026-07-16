@@ -20,9 +20,22 @@ class LandingController extends Controller
             ->take(6)
             ->get();
 
+        // Tambahan
+        $featuredPortalPrograms = Program::with('category')
+            ->active()
+            ->whereHas('category', function ($query) {
+                $query->active();
+            })
+            ->latest()
+            ->take(3)
+            ->get();
+
         return view('landing.index', array_merge(
             $this->buildLandingData(),
-            ['featuredMerchandises' => $featuredMerchandises]
+            [
+                'featuredMerchandises'   => $featuredMerchandises,
+                'featuredPortalPrograms' => $featuredPortalPrograms,
+            ]
         ));
     }
 
@@ -41,7 +54,7 @@ class LandingController extends Controller
             ->whereHas('category', function ($query) {
                 $query->active();
             })
-            ->ordered()
+            ->latest()
             ->paginate(9)
             ->withQueryString();
 

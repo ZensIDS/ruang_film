@@ -378,6 +378,9 @@
         'showCompetitionSubmittedStat' => true,
     ])
     @include('landing.partials.home-merchandise-section', ['featuredMerchandises' => $featuredMerchandises])
+    {{-- Tambahan --}}
+    @include('landing.partials.home-portal-section', ['featuredPortalPrograms' => $featuredPortalPrograms])
+    {{-- Batas Tambahan --}}
     @elseif($hasClosedLandingPeriod)
     @include('landing.partials.program-highlight-section')
     @endif
