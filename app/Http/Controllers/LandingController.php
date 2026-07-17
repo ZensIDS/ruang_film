@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers;
 
 use App\Models\Film;
@@ -285,7 +286,7 @@ class LandingController extends Controller
             ],
             (object) [
                 'name'                  => 'Ekshibisi Lokal Pacitan',
-                'resolved_summary'      => "Kompetisi film horor bagi :\n- Organisasi (PKK - PAUD & TK, dan Karang Taruna) & Komunitas Lokal Pacitan\n- Pelajar SD - SMP Pacitan",
+                'resolved_summary'      => "Kompetisi film horor bagi :\n- Organisasi PKK, Karang Taruna & Komunitas Lokal Pacitan\n- Pelajar SMP se-Kabupaten Pacitan",
                 'image_url'             => asset('landing/images/kategori/EKSIBISI.png'),
                 'resolved_detail_route' => '/ekshibisi',
             ],

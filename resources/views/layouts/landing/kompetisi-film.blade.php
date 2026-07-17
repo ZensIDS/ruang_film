@@ -51,14 +51,17 @@
                                     str_contains($categoryNameLower, 'umum') => [
                                         'label' => 'Unduh Juknis',
                                         'files' => ['ffh-umum.pdf'],
+                                        'labels' => ['UNDUH JUKNIS'],
                                     ],
                                     str_contains($categoryNameLower, 'pelajar') => [
                                         'label' => 'Unduh Juknis',
                                         'files' => ['ffh-pelajar.pdf'],
+                                        'labels' => ['UNDUH JUKNIS'],
                                     ],
                                     str_contains($categoryNameLower, 'ekshibisi') => [
                                         'label' => 'Unduh Juknis',
-                                        'files' => ['ffh-sdsmp.pdf','ffh-komunitas.pdf'],
+                                        'files' => ['ffh-sdsmp.pdf', 'ffh-komunitas.pdf'],
+                                        'labels' => ['Juknis FFH - PELAJAR SMP', 'JUKNIS FFH ORGANISASI'],
                                     ],
                                     default => null,
                                 };
@@ -67,12 +70,15 @@
                             @if ($juknisFiles)
                                 <div class="flex flex-wrap gap-2 mb-6">
                                     @foreach ($juknisFiles['files'] as $index => $file)
+                                        @php
+                                            $fileLabel = $juknisFiles['labels'][$index]
+                                                ?? (count($juknisFiles['files']) > 1 ? 'Juknis ' . ($index + 1) : $juknisFiles['label']);
+                                        @endphp
                                         <a href="{{ asset('landing/pdf/' . $file) }}"
                                             download="Petunjuk_Teknis_{{ Str::slug($category->name, '_') }}{{ count($juknisFiles['files']) > 1 ? '_' . ($index + 1) : '' }}.pdf"
                                             class="btn-glass-badge inline-flex items-center gap-1.5 bg-purple-600/80 backdrop-blur-sm px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all duration-300 group w-fit">
-                                            <i
-                                                class="fas fa-download text-[10px] group-hover:-translate-y-0.5 transition-transform duration-300"></i>
-                                            {{ count($juknisFiles['files']) > 1 ? 'Juknis ' . pathinfo($file, PATHINFO_FILENAME) : $juknisFiles['label'] }}
+                                            <i class="fas fa-download text-[10px] group-hover:-translate-y-0.5 transition-transform duration-300"></i>
+                                            {{ $fileLabel }}
                                         </a>
                                     @endforeach
                                 </div>

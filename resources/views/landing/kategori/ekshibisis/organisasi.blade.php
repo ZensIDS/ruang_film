@@ -66,11 +66,11 @@
                             </h3>
                         </div>
                         <ul class="space-y-3 text-gray-300 text-sm md:text-base">
-                            <li class="flex items-start gap-3">
+                            {{--  <li class="flex items-start gap-3">
                                 <i
                                     class="fas fa-check-circle text-purple-400 mt-1 text-sm"></i><span>Peserta merupakan anggota organisasi belajar (PAUD-TK) yang
                                     berdomisili diseluruh Kabupaten Pacitan</span>
-                            </li>
+                            </li>  --}}
                             <li class="flex items-start gap-3">
                                 <i
                                     class="fas fa-check-circle text-purple-400 mt-1 text-sm"></i><span>Peserta merupakan kolaborasi PKK dan Karang Taruna antar

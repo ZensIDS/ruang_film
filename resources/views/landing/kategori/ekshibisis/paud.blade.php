@@ -68,7 +68,7 @@
                         <ul class="space-y-3 text-gray-300 text-sm md:text-base">
                             <li class="flex items-start gap-3">
                                 <i
-                                    class="fas fa-check-circle text-purple-400 mt-1 text-sm"></i><span>Peserta merupakan pelajar aktif (SD-SMP) yang berdomisili
+                                    class="fas fa-check-circle text-purple-400 mt-1 text-sm"></i><span>Peserta merupakan pelajar aktif SMP yang berdomisili
                                     dan bersekolah diseluruh Kabupaten Pacitan. Dibuktikan
                                     dengan scan/foto kartu pelajar dan surat keterangan dari
                                     sekolah pada pengumpulan daftar tim produksi.</span>

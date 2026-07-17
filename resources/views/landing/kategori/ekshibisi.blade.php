@@ -98,9 +98,8 @@
                         </p>
                         <p>
                             Kategori Eksibisi ini terbagi menjadi dua sub kategori: <br />
-                            - Pelajar (Jenjang SD, SMP se-Kabupaten Pacitan) <br />
-                            - Organisasi (PKK PAUD & TK, dan Karang Taruna Pacitan) &
-                            Komunitas Lokal Pacitan <br />
+                            - Pelajar (Jenjang SMP se-Kabupaten Pacitan) <br />
+                            - Organisasi PKK, Karang Taruna & Komunitas Lokal Pacitan <br />
                             Kategori ini berfungsi sebagau fondasi awal sebelum memasuki
                             level kompetisi yang lebih tinggi dalam FFH 2026, menekankan
                             partisipasi dalam eksplorasi, bukan kompetisi yang ketat,
@@ -153,7 +152,7 @@
                                 <!-- Deskripsi -->
                                 <p
                                     class="text-gray-300 text-sm md:text-base leading-relaxed mb-6">
-                                    PKK, PAUD & TK, Karang Taruna Pacitan, dan komunitas lokal
+                                    PKK, Karang Taruna Pacitan, dan komunitas lokal
                                     yang berada di wilayah Kabupaten Pacitan.
                                 </p>
 
@@ -190,13 +189,13 @@
                                 <!-- Judul -->
                                 <h3
                                     class="text-2xl md:text-3xl font-bold text-white mb-3 group-hover:text-purple-300 transition-colors duration-300">
-                                    Kategori Pelajar SD – SMP Pacitan
+                                    Kategori Pelajar SMP se-Kabupaten Pacitan
                                 </h3>
 
                                 <!-- Deskripsi -->
                                 <p
                                     class="text-gray-300 text-sm md:text-base leading-relaxed mb-6">
-                                    Terbuka bagi peserta didik SD dan SMP yang berada
+                                    Terbuka bagi peserta didik SMP yang berada
                                     di wilayah Kabupaten Pacitan.
                                 </p>
 
