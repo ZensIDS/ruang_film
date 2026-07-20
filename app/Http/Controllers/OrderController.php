@@ -248,7 +248,7 @@ class OrderController extends Controller
 
     protected function authorizeOrderAccess(Order $order)
     {
-        $allowedRoles = ['admin', 'adminsub'];
+        $allowedRoles = ['admin', 'adminsub', 'adminmerch'];
 
         if (
             (auth()->user() && auth()->user()->ownsUserId($order->user_id))
