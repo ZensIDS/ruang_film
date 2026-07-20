@@ -16,6 +16,9 @@
                     @if(Auth::user()->role === 'admin')
                     <a href="{{ route('users.create.author') }}" class="btn btn-md bg-green">Tambah Peserta</a>
                     @endif
+                    <a href="{{ route('users.export-peserta') }}" class="btn btn-md bg-blue">
+                        <i class="fa fa-file-excel-o"></i> Export Excel
+                    </a>
                 </div><!-- /.box-header -->
                 <div class="box-body table-responsive">
                     <table id="example1" class="table table-bordered table-striped">

@@ -113,6 +113,7 @@ Route::delete('/setting/submission/{submissionSetting}', [SubmissionSettingContr
 Route::post('/setting/general', [SubmissionSettingController::class, 'updateGeneral'])->middleware(['auth', 'role:admin'])->name('settingGeneralUpdate');
 
 // User
+Route::get('users/export-peserta', [UserController::class, 'exportPesertaExcel'])->middleware('auth')->name('users.export-peserta');
 Route::resource('/users', UserController::class)->middleware('auth');
 Route::get('/users/index/author', [UserController::class, 'indexAuth'])->middleware('auth')->name('users.index.author');
 Route::get('/users/index/author/create', [UserController::class, 'createAuthor'])->middleware('auth')->name('users.create.author');

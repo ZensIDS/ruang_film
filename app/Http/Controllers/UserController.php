@@ -7,6 +7,8 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
+use App\Exports\PesertaExport;
+use Maatwebsite\Excel\Facades\Excel;
 
 class UserController extends Controller
 {
@@ -198,7 +200,7 @@ class UserController extends Controller
     {
         return view('user.indexAuth', [
             'title' => 'User Author',
-            'users' => User::Where('role', 'peserta')->latest()->get(),
+            'users' => $this->getPesertaUsers(),
         ]);
     }
 
@@ -208,5 +210,27 @@ class UserController extends Controller
             'title' => 'User Kurator & Juri',
             'users' => User::with('category')->whereIn('role', ['kurator', 'juri'])->latest()->get(),
         ]);
+    }
+
+    public function exportPesertaExcel()
+    {
+        $users = $this->getPesertaUsers();
+
+        $fileName = 'data-peserta_' . now()->format('Ymd_His') . '.xlsx';
+
+        return Excel::download(new PesertaExport($users), $fileName);
+    }
+
+    /**
+     * Dipakai bareng oleh indexAuth() dan exportPesertaExcel()
+     * supaya data yang di-export selalu sama dengan yang tampil di halaman.
+     */
+    private function getPesertaUsers()
+    {
+        return User::with('detail')
+            ->withCount('films') // hasil bisa diakses lewat $user->films_count
+            ->where('role', 'peserta')
+            ->latest()
+            ->get();
     }
 }
