@@ -66,6 +66,12 @@
                         </div>
                         <button type="submit" class="btn btn-primary">Filter</button>
                         <a href="{{ route('film.index') }}" class="btn btn-default" style="margin-left:8px;">Reset</a>
+
+                        {{-- Export Excel: otomatis bawa filter yang sedang aktif di URL --}}
+                        <a href="{{ route('film.export', request()->only('submission_setting_id', 'category_id', 'curation_status')) }}"
+                        class="btn btn-success" style="margin-left:8px;">
+                            <i class="fa fa-file-excel-o"></i> Export Excel
+                        </a>
                     </form>
                     @else
                     <label style="font-size:12px; color:#888; font-weight:600; white-space:nowrap; margin:0;">
@@ -78,6 +84,10 @@
                         <option value="{{ $cat->name }}">{{ $cat->name }}</option>
                         @endforeach
                     </select>
+
+                    <a href="{{ route('film.export') }}" class="btn btn-success" style="margin-left:auto;">
+                        <i class="fa fa-file-excel-o"></i> Export Excel
+                    </a>
                     @endif
                 </div>
 

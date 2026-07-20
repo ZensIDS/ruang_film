@@ -126,6 +126,7 @@ Route::post('/biodata', [UserDetailController::class, 'save'])->name('user-detai
 
 // Film
 Route::resource('film', FilmController::class)->middleware('auth');
+Route::get('films/export', [FilmController::class, 'exportExcel'])->name('film.export');
 Route::get('/film/{id}/gsm/download', [FilmController::class, 'downloadGsm'])->name('film.gsm.download');
 
 // Category

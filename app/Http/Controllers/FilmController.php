@@ -10,6 +10,8 @@ use App\Models\UserDetail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use App\Exports\FilmsExport;
+use Maatwebsite\Excel\Facades\Excel;
 
 class FilmController extends Controller
 {
@@ -34,36 +36,11 @@ class FilmController extends Controller
         $selectedCurationStatus = null;
 
         if (auth()->user()->hasRole(['admin', 'adminsub'])) {
-            $selectedSubmissionSettingId = $this->resolveSubmissionSettingId($request);
-            $selectedCategoryId = $this->resolveCategoryId($request);
-            $selectedCurationStatus = $this->resolveCurationStatus($request);
             $submissionPeriods = SubmissionSetting::orderByDesc('open_at')->get();
-
-            $query = Film::with(['user.category', 'category', 'submissionSetting']);
-
-            if ($selectedSubmissionSettingId) {
-                $query->where('submission_setting_id', $selectedSubmissionSettingId);
-            }
-
-            if ($selectedCategoryId) {
-                $query->where('category_id', $selectedCategoryId);
-            }
-
-            if ($selectedCurationStatus) {
-                $query->where('curation_status', $selectedCurationStatus);
-            }
-
-            $films = $query
-                ->orderByDesc('created_at')
-                ->orderByDesc('id')
-                ->get();
-        } else {
-            $films = Film::with(['user.category', 'category', 'submissionSetting'])
-                ->where('user_id', auth()->id())
-                ->orderByDesc('created_at')
-                ->orderByDesc('id')
-                ->get();
         }
+
+        [$films, $selectedSubmissionSettingId, $selectedCategoryId, $selectedCurationStatus]
+            = $this->getFilteredFilms($request);
 
         return view('film.index', compact(
             'films',
@@ -482,5 +459,60 @@ class FilmController extends Controller
         }
 
         return null;
+    }
+
+    public function exportExcel(Request $request)
+    {
+        [$films] = $this->getFilteredFilms($request);
+
+        $fileName = 'data-submission-film_' . now()->format('Ymd_His') . '.xlsx';
+
+        return Excel::download(new FilmsExport($films), $fileName);
+    }
+
+    /**
+     * Ambil data film + filter yang sedang aktif.
+     * Dipakai bareng oleh index() dan exportExcel() supaya hasilnya selalu sinkron.
+     *
+     * @return array{0: \Illuminate\Support\Collection, 1: ?int, 2: ?int, 3: ?string}
+     */
+    private function getFilteredFilms(Request $request): array
+    {
+        $selectedSubmissionSettingId = null;
+        $selectedCategoryId = null;
+        $selectedCurationStatus = null;
+
+        if (auth()->user()->hasRole(['admin', 'adminsub'])) {
+            $selectedSubmissionSettingId = $this->resolveSubmissionSettingId($request);
+            $selectedCategoryId = $this->resolveCategoryId($request);
+            $selectedCurationStatus = $this->resolveCurationStatus($request);
+
+            $query = Film::with(['user.category', 'category', 'submissionSetting']);
+
+            if ($selectedSubmissionSettingId) {
+                $query->where('submission_setting_id', $selectedSubmissionSettingId);
+            }
+
+            if ($selectedCategoryId) {
+                $query->where('category_id', $selectedCategoryId);
+            }
+
+            if ($selectedCurationStatus) {
+                $query->where('curation_status', $selectedCurationStatus);
+            }
+
+            $films = $query
+                ->orderByDesc('created_at')
+                ->orderByDesc('id')
+                ->get();
+        } else {
+            $films = Film::with(['user.category', 'category', 'submissionSetting'])
+                ->where('user_id', auth()->id())
+                ->orderByDesc('created_at')
+                ->orderByDesc('id')
+                ->get();
+        }
+
+        return [$films, $selectedSubmissionSettingId, $selectedCategoryId, $selectedCurationStatus];
     }
 }
