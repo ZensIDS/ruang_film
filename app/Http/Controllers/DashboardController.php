@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers;
 
 use App\Models\Category;
@@ -24,6 +25,8 @@ class DashboardController extends Controller
             return $this->dashboardPeserta();
         } elseif ($user->hasRole(['admin', 'adminsub', 'kurator', 'juri'])) {
             return $this->dashboardAdmin();
+        } elseif ($user->hasRole(['adminmerch'])) {
+            return redirect(route('admin.orders.index'));
         }
 
         return view('dashboard');

@@ -46,10 +46,10 @@
                 </a>
                 <ul class="treeview-menu" style="{{ request()->routeIs('merchandise-categories.*') || request()->routeIs('admin-merchandises.*') ? 'display:block;' : '' }}">
                     <li class="{{ request()->routeIs('merchandise-categories.*') ? 'active' : '' }}">
-                        <a href="{{ route('merchandise-categories.index') }}"><i class="fa fa-circle-o"></i> Kategori Merchandise</a>
+                        <a href="{{ route('merchandise-categories.index') }}"><i class="fa fa-archive"></i> Kategori Merchandise</a>
                     </li>
                     <li class="{{ request()->routeIs('admin-merchandises.*') ? 'active' : '' }}">
-                        <a href="{{ route('admin-merchandises.index') }}"><i class="fa fa-circle-o"></i> Merchandise</a>
+                        <a href="{{ route('admin-merchandises.index') }}"><i class="fa fa-shopping-cart"></i> Merchandise</a>
                     </li>
                     <li class="{{ request()->routeIs('admin.orders.*') ? 'active' : '' }}">
                         <a href="{{ route('admin.orders.index') }}"><i class="fa fa-credit-card"></i> <span>Invoice Merchandise</span></a>
@@ -94,11 +94,29 @@
             <li class="{{ request()->routeIs('review.*') ? 'active' : '' }}">
                 <a href="{{ route('review.index') }}"><i class="fa fa-check-square-o"></i> <span>Review Submission</span></a>
             </li>
+            <li class="{{ request()->routeIs('users.index.author') || request()->routeIs('users.show') ? 'active' : '' }}">
+                <a href="{{ route('users.index.author') }}"><i class="fa fa-group"></i> <span>Data Peserta</span></a>
+            </li>
+        </ul><!-- /.sidebar-menu -->
+        @endif
+
+        @if (Auth::user()->role == 'adminmerch')
+        <!-- Sidebar Menu -->
+        <ul class="sidebar-menu">
             <li class="{{ request()->routeIs('admin.orders.*') ? 'active' : '' }}">
                 <a href="{{ route('admin.orders.index') }}"><i class="fa fa-credit-card"></i> <span>Invoice Merchandise</span></a>
             </li>
-            <li class="{{ request()->routeIs('users.index.author') || request()->routeIs('users.show') ? 'active' : '' }}">
-                <a href="{{ route('users.index.author') }}"><i class="fa fa-group"></i> <span>Data Peserta</span></a>
+            <li class="{{ request()->routeIs('merchandise-categories.*') ? 'active' : '' }}">
+                <a href="{{ route('merchandise-categories.index') }}"><i class="fa fa-archive"></i> Kategori Merchandise</a>
+            </li>
+            <li class="{{ request()->routeIs('admin-merchandises.*') ? 'active' : '' }}">
+                <a href="{{ route('admin-merchandises.index') }}"><i class="fa fa-shopping-cart"></i> Data Merchandise</a>
+            </li>
+            <li class="{{ request()->routeIs('expeditions.*') ? 'active' : '' }}">
+                <a href="{{ route('expeditions.index') }}"><i class="fa fa-truck"></i> <span>Expedisi</span></a>
+            </li>
+            <li class="{{ request()->routeIs('bank-accounts.*') ? 'active' : '' }}">
+                <a href="{{ route('bank-accounts.index') }}"><i class="fa fa-bank"></i> <span>Rekening</span></a>
             </li>
         </ul><!-- /.sidebar-menu -->
         @endif

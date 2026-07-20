@@ -48,9 +48,7 @@ Route::get('/umum', function () {
     return view('landing.kategori.umum');
 });
 
-// Tambahan
 Route::get('/portal', [LandingController::class, 'portal'])->name('landing.portal');
-// Batas Tambahan
 
 Route::get('/pelajar', function () {
     return view('landing.kategori.pelajar');
@@ -174,7 +172,7 @@ Route::middleware('auth')->group(function () {
         ->name('review.nominate');
 });
 
-Route::middleware(['auth', 'role:admin'])->group(function () {
+Route::middleware(['auth', 'role:admin,adminmerch'])->group(function () {
     Route::get('/expeditions/origin/laravolt-search', [ExpeditionController::class, 'searchLaravoltOrigin'])->name('expeditions.origin.laravolt-search');
     Route::get('/expeditions/origin/rajaongkir-search', [ExpeditionController::class, 'searchRajaOngkirOrigin'])->name('expeditions.origin.rajaongkir-search');
     Route::post('/expeditions/origin/laravolt', [ExpeditionController::class, 'updateOriginFromLaravolt'])->name('expeditions.origin.laravolt');
@@ -187,7 +185,7 @@ Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::resource('/bank-accounts', BankAccountController::class)->except('show');
 });
 
-Route::middleware(['auth', 'role:admin,adminsub'])->group(function () {
+Route::middleware(['auth', 'role:admin,adminmerch'])->group(function () {
     Route::get('/admin/orders', [OrderController::class, 'adminIndex'])->name('admin.orders.index');
     Route::get('/admin/orders/{order}', [OrderController::class, 'adminShow'])->name('admin.orders.show');
     Route::post('/admin/orders/{order}/verify', [OrderController::class, 'verify'])->name('admin.orders.verify');

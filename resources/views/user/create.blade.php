@@ -34,6 +34,7 @@
                                 <option value="1" selected disabled>Pilih Role User</option>
                                 <option value="admin" {{ old('role') === 'admin' ? 'selected' : '' }}>Superadmin</option>
                                 <option value="adminsub" {{ old('role') === 'adminsub' ? 'selected' : '' }}>Admin Submission</option>
+                                <option value="adminmerch" {{ old('role') === 'adminmerch' ? 'selected' : '' }}>Admin Merchandise</option>
                                 <option value="kurator" {{ old('role') === 'kurator' ? 'selected' : '' }}>Kurator</option>
                                 <option value="juri" {{ old('role') === 'juri' ? 'selected' : '' }}>Juri</option>
                             </select>
