@@ -10,6 +10,8 @@ use App\Services\Shipping\RajaOngkirDeliveryService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use App\Exports\OrdersExport;
+use Maatwebsite\Excel\Facades\Excel;
 
 class OrderController extends Controller
 {
@@ -69,36 +71,8 @@ class OrderController extends Controller
     {
         $this->expireOverdueOrders();
 
-        $startDateInput = $request->input('start_date');
-        $endDateInput   = $request->input('end_date');
-
-        $startDate = $startDateInput ? Carbon::parse($startDateInput)->startOfDay() : null;
-        $endDate   = $endDateInput ? Carbon::parse($endDateInput)->endOfDay() : null;
-
-        $query = Order::with('user')->latest();
-
-        if ($startDate && $endDate) {
-            $query->whereBetween('created_at', [$startDate, $endDate]);
-        }
-
-        $orders = $query->get();
-
-        // Hitung stats dari orders yang sudah kena filter tanggal (kalau ada),
-        // supaya box rekap ikut menyesuaikan filter.
-        $paidOrders = $orders->where('status', 'paid');
-
-        $grossRevenue   = (float) $paidOrders->sum('total');
-        $shippingTotal  = (float) $paidOrders->sum('shipping_fee');
-
-        $stats = [
-            'paid_count'                 => $paidOrders->count(),
-            'waiting_verification_count' => $orders->where('status', 'waiting_verification')->count(),
-            'expired_count'               => $orders->where('status', 'expired')->count(),
-            'rejected_count'              => $orders->where('status', 'payment_rejected')->count(),
-            'gross_revenue'               => $grossRevenue,
-            'shipping_total'              => $shippingTotal,
-            'net_revenue'                 => $grossRevenue - $shippingTotal,
-        ];
+        ['orders' => $orders, 'stats' => $stats, 'startDateInput' => $startDateInput, 'endDateInput' => $endDateInput]
+            = $this->getFilteredOrders($request);
 
         return view('order.index', [
             'title'     => 'Data Invoice Merchandise',
@@ -117,6 +91,21 @@ class OrderController extends Controller
             'title' => 'Detail Invoice',
             'order' => $order->load(['user', 'items', 'verifier']),
         ]);
+    }
+
+    public function exportExcel(Request $request)
+    {
+        ['orders' => $orders, 'stats' => $stats, 'startDateInput' => $startDateInput, 'endDateInput' => $endDateInput]
+            = $this->getFilteredOrders($request);
+
+        $fileName = 'data-invoice-merchandise'
+            . ($startDateInput && $endDateInput ? "_{$startDateInput}_sd_{$endDateInput}" : '_semua')
+            . '.xlsx';
+
+        return Excel::download(
+            new OrdersExport($orders, $stats, $startDateInput, $endDateInput),
+            $fileName
+        );
     }
 
     public function verify(Request $request, Order $order)
@@ -300,5 +289,39 @@ class OrderController extends Controller
             Merchandise::where('id', $item->merchandise_id)
                 ->increment('qty_stock', $item->quantity);
         }
+    }
+
+    private function getFilteredOrders(Request $request): array
+    {
+        $startDateInput = $request->input('start_date');
+        $endDateInput   = $request->input('end_date');
+
+        $startDate = $startDateInput ? Carbon::parse($startDateInput)->startOfDay() : null;
+        $endDate   = $endDateInput ? Carbon::parse($endDateInput)->endOfDay() : null;
+
+        $query = Order::with('user')->latest();
+
+        if ($startDate && $endDate) {
+            $query->whereBetween('created_at', [$startDate, $endDate]);
+        }
+
+        $orders = $query->get();
+
+        $paidOrders = $orders->where('status', 'paid');
+
+        $grossRevenue  = (float) $paidOrders->sum('total');
+        $shippingTotal = (float) $paidOrders->sum('shipping_fee');
+
+        $stats = [
+            'paid_count'                 => $paidOrders->count(),
+            'waiting_verification_count' => $orders->where('status', 'waiting_verification')->count(),
+            'expired_count'               => $orders->where('status', 'expired')->count(),
+            'rejected_count'              => $orders->where('status', 'payment_rejected')->count(),
+            'gross_revenue'               => $grossRevenue,
+            'shipping_total'              => $shippingTotal,
+            'net_revenue'                 => $grossRevenue - $shippingTotal,
+        ];
+
+        return compact('orders', 'stats', 'startDateInput', 'endDateInput');
     }
 }

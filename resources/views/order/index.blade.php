@@ -114,6 +114,10 @@
                             <i class="fa fa-refresh"></i> Reset
                         </a>
                         @endif
+                        <a href="{{ route('admin.orders.export', request()->only('start_date', 'end_date')) }}"
+                            class="btn btn-success">
+                                <i class="fa fa-file-excel-o"></i> Export Excel
+                        </a>
                     </form>
                 </div>
             </div>

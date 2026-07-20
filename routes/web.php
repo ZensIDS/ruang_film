@@ -187,6 +187,7 @@ Route::middleware(['auth', 'role:admin,adminmerch'])->group(function () {
 
 Route::middleware(['auth', 'role:admin,adminmerch'])->group(function () {
     Route::get('/admin/orders', [OrderController::class, 'adminIndex'])->name('admin.orders.index');
+    Route::get('admin/orders/export', [OrderController::class, 'exportExcel'])->name('admin.orders.export');
     Route::get('/admin/orders/{order}', [OrderController::class, 'adminShow'])->name('admin.orders.show');
     Route::post('/admin/orders/{order}/verify', [OrderController::class, 'verify'])->name('admin.orders.verify');
     Route::post('/admin/orders/{order}/reject', [OrderController::class, 'reject'])->name('admin.orders.reject');
