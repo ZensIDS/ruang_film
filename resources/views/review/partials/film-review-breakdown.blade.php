@@ -1,9 +1,11 @@
 @php
+    $user = auth()->user();
+    $isAdmin = $user->hasRole(['admin', 'adminsub']);
     $reviewStageLabels = $reviewStageLabels ?? \App\Models\ReviewRubric::stageLabels();
     $rubricsByStage = optional($film->category)->rubrics ? $film->category->rubrics->keyBy('stage') : collect();
     $isReviewAdmin = auth()->user()->hasRole(['admin', 'adminsub']);
 @endphp
-
+@if($isAdmin)
 <div style="background:#fff; border:0.5px solid #e0e0e0; border-radius:10px; padding:16px; margin-top:16px;">
     <div style="font-size:13px; font-weight:600; border-left:3px solid #1db9a0; padding-left:10px; margin-bottom:14px;">Rekap Penilaian</div>
 
@@ -29,7 +31,7 @@
             <span class="text-muted">
                 {{ $reviews->count() }} reviewer
                 @if($reviews->count())
-                / rata-rata {{ number_format((float) $reviews->avg('total_score'), 2) }}
+                / Total Nilai {{ number_format((float) $reviews->sum('total_score'), 2) }}
                 @endif
             </span>
         </div>
@@ -80,3 +82,4 @@
     </div>
     @endforeach
 </div>
+@endif

@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers;
 
 use App\Models\Category;
@@ -524,11 +525,11 @@ class SubmissionReviewController extends Controller
             $curationReviews = $film->submissionReviews->where('stage', ReviewRubric::STAGE_CURATION);
             $juryReviews     = $film->submissionReviews->where('stage', ReviewRubric::STAGE_JURY);
 
-            $film->curation_average_score = round((float) $curationReviews->avg('total_score'), 2);
+            $film->curation_average_score = round((float) $curationReviews->sum('total_score'), 2);
             $film->curation_review_count  = $curationReviews->count();
             $film->jury_average_score     = $juryReviews->count()
-                ? round((float) $juryReviews->avg('total_score'), 2)
-                : round((float) $film->juryScores->avg('score'), 2);
+                ? round((float) $juryReviews->sum('total_score'), 2)
+                : round((float) $film->juryScores->sum('score'), 2);
             $film->jury_review_count     = $juryReviews->count() ?: $film->juryScores->count();
             $film->rubric_item_summaries = $this->itemSummaries($film, $stage, $rubricItems);
 

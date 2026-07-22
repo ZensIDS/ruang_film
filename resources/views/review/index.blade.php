@@ -166,21 +166,21 @@
                                 @if($isAdmin)
                                 <td>
                                     <strong>{{ number_format($currentAverage, 2) }}</strong><br>
-                                    <small>{{ $currentCount }} reviewer</small>
+                                    <span class="label label-success">{{ $currentCount }} Reviewer</span>
                                 </td>
                                 @endif
 
                                 {{-- Nilai Per Reviewer — sesuai role --}}
                                 <td style="min-width:260px;">
                                     @if($visibleCurationReviews->count())
-                                        <div><strong>Kurator</strong></div>
+                                        {{--  <div><strong>Kurator</strong></div>  --}}
                                         @foreach($visibleCurationReviews as $review)
                                         <div style="margin-bottom:4px;">
                                             {{-- Admin lihat nama reviewer, selain itu tidak --}}
                                             @if($isAdmin)
-                                                <small>{{ $review->reviewer->name ?? 'Kurator' }}: {{ number_format((float) $review->total_score, 2) }}</small>
+                                                <strong>{{ $review->reviewer->name ?? 'Kurator' }} : {{ number_format((float) $review->total_score, 2) }}</strong>
                                             @else
-                                                <small>{{ number_format((float) $review->total_score, 2) }}</small>
+                                                <strong>Total Nilai : </strong><strong>{{ number_format((float) $review->total_score, 2) }}<br></strong><span class="label label-success">{{ $currentCount }} Reviewer</span>
                                             @endif
                                             @if($review->note)
                                                 <br><small class="text-muted">{{ $review->note }}</small>
