@@ -35,7 +35,7 @@ class FilmController extends Controller
         $selectedCategoryId = null;
         $selectedCurationStatus = null;
 
-        if (auth()->user()->hasRole(['admin', 'adminsub'])) {
+        if (auth()->user()->hasRole(['admin', 'adminsub', 'viewer'])) {
             $submissionPeriods = SubmissionSetting::orderByDesc('open_at')->get();
         }
 
@@ -482,7 +482,7 @@ class FilmController extends Controller
         $selectedCategoryId = null;
         $selectedCurationStatus = null;
 
-        if (auth()->user()->hasRole(['admin', 'adminsub'])) {
+        if (auth()->user()->hasRole(['admin', 'adminsub', 'viewer'])) {
             $selectedSubmissionSettingId = $this->resolveSubmissionSettingId($request);
             $selectedCategoryId = $this->resolveCategoryId($request);
             $selectedCurationStatus = $this->resolveCurationStatus($request);

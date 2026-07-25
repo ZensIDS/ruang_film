@@ -15,6 +15,13 @@
             </div>
         </div>
 
+        @if (Auth::user()->role == 'viewer')
+        <ul class="sidebar-menu">
+            <li class="{{ request()->routeIs('film.*') ? 'active' : '' }}">
+                <a href="{{ route('film.index') }}"><i class="fa fa-file-text"></i> <span>Submission</span></a>
+            </li>
+        </ul>
+        @endif
         @if (Auth::user()->role == 'admin')
         <!-- Sidebar Menu -->
         <ul class="sidebar-menu">

@@ -167,6 +167,7 @@
                                         class="btn btn-info btn-xs" title="Detail">
                                         <i class="fa fa-eye"></i>
                                     </a>
+                                    @if(auth()->user()->role != 'viewer')
                                     <a href="{{ route('film.edit', $film->id) }}"
                                         class="btn btn-warning btn-xs" title="Edit">
                                         <i class="fa fa-pencil"></i>
@@ -180,6 +181,7 @@
                                             <i class="fa fa-trash"></i>
                                         </button>
                                     </form>
+                                    @endif
                                 </td>
                             </tr>
                             @empty

@@ -35,6 +35,7 @@
                                 <option value="admin" {{ old('role') === 'admin' ? 'selected' : '' }}>Superadmin</option>
                                 <option value="adminsub" {{ old('role') === 'adminsub' ? 'selected' : '' }}>Admin Submission</option>
                                 <option value="adminmerch" {{ old('role') === 'adminmerch' ? 'selected' : '' }}>Admin Merchandise</option>
+                                <option value="viewer" {{ old('role') === 'viewer' ? 'selected' : '' }}>Viewer/Penonton</option>
                                 <option value="kurator" {{ old('role') === 'kurator' ? 'selected' : '' }}>Kurator</option>
                                 <option value="juri" {{ old('role') === 'juri' ? 'selected' : '' }}>Juri</option>
                             </select>

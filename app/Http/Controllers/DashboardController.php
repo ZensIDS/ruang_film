@@ -27,6 +27,8 @@ class DashboardController extends Controller
             return $this->dashboardAdmin();
         } elseif ($user->hasRole(['adminmerch'])) {
             return redirect(route('admin.orders.index'));
+        } elseif ($user->hasRole(['viewer'])) {
+            return redirect(route('film.index'));
         }
 
         return view('dashboard');
