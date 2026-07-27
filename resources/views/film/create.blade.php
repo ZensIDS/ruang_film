@@ -59,10 +59,10 @@
                                 <div class="form-group">
                                     <label>Durasi <span class="text-danger">*</span></label>
                                     <div style="display:flex; align-items:center; gap:6px;">
-                                        <input type="number" id="dur_h" min="0" max="99" placeholder="00"
+                                        <input type="number" id="dur_h" min="0" max="0" placeholder="00"
                                             class="form-control" style="width:70px; text-align:center; font-weight:600;">
                                         <span style="font-size:18px; color:#888;">:</span>
-                                        <input type="number" id="dur_m" min="0" max="59" placeholder="00"
+                                        <input type="number" id="dur_m" min="0" max="30" placeholder="00"
                                             class="form-control" style="width:70px; text-align:center; font-weight:600;">
                                         <span style="font-size:18px; color:#888;">:</span>
                                         <input type="number" id="dur_s" min="0" max="59" placeholder="00"
@@ -71,6 +71,10 @@
                                     {{-- Field hidden yang benar-benar dikirim ke server --}}
                                     <input type="hidden" name="duration" id="duration_seconds">
                                     <small class="text-danger">Format: jam : menit : detik</small>
+                                    <br>
+                                    <span id="duration_warning" class="text-danger" style="display:none;">
+                                        Durasi film maksimal 30 menit.
+                                    </span>
                                 </div>
                             </div>
                             <div class="col-md-4">
@@ -213,24 +217,44 @@
 @endsection
 @push('scripts')
 <script>
+    const MAX_DURATION_SECONDS = 30 * 60; // 1800 detik = 30 menit
+
     // ── Durasi: tampilkan HH:MM:SS → simpan sebagai total detik ──
     function hitungDetik() {
         const h = parseInt(document.getElementById('dur_h').value) || 0;
         const m = parseInt(document.getElementById('dur_m').value) || 0;
         const s = parseInt(document.getElementById('dur_s').value) || 0;
-        document.getElementById('duration_seconds').value = (h * 3600) + (m * 60) + s;
+        const total = (h * 3600) + (m * 60) + s;
+
+        document.getElementById('duration_seconds').value = total;
+
+        const warningEl = document.getElementById('duration_warning');
+        if (total > MAX_DURATION_SECONDS) {
+            warningEl.style.display = 'inline';
+        } else {
+            warningEl.style.display = 'none';
+        }
+
+        return total;
     }
+
     ['dur_h', 'dur_m', 'dur_s'].forEach(id => {
         document.getElementById(id).addEventListener('input', hitungDetik);
     });
 
-    // ── Pastikan duration_seconds terisi sebelum form disubmit ──
+    // ── Pastikan duration_seconds terisi & tidak melebihi batas sebelum form disubmit ──
     document.querySelector('form').addEventListener('submit', function(e) {
-        hitungDetik();
-        const dur = parseInt(document.getElementById('duration_seconds').value);
+        const dur = hitungDetik();
+
         if (!dur || dur <= 0) {
             e.preventDefault();
             alert('Durasi film wajib diisi.');
+            return;
+        }
+
+        if (dur > MAX_DURATION_SECONDS) {
+            e.preventDefault();
+            alert('Durasi film maksimal 30 menit.');
         }
     });
 </script>

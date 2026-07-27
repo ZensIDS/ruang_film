@@ -93,7 +93,7 @@ class FilmController extends Controller
 
         $request->validate([
             'name'           => 'required|string|max:255',
-            'duration'       => 'required|integer|min:1',
+            'duration'       => 'required|integer|min:1|max:1800',
             'tahun_produksi' => 'required|digits:4',
             'subtitle'       => 'required|in:Ya,Tidak',
             'sinopsis'       => 'required|string',
@@ -112,6 +112,7 @@ class FilmController extends Controller
             'name.required'           => 'Judul film wajib diisi.',
             'duration.required'       => 'Durasi wajib diisi.',
             'duration.min'            => 'Durasi tidak valid.',
+            'duration.max'            => 'Durasi film maksimal 30 menit.',
             'tahun_produksi.required' => 'Tahun produksi wajib diisi.',
             'tahun_produksi.digits'   => 'Tahun produksi harus 4 digit.',
             'subtitle.required'       => 'Subtitle wajib dipilih.',
@@ -244,7 +245,7 @@ class FilmController extends Controller
 
         $request->validate([
             'name'           => 'required|string|max:255',
-            'duration'       => 'required|integer|min:1',
+            'duration'       => 'required|integer|min:1|max:1800',
             'tahun_produksi' => 'required|digits:4',
             'subtitle'       => 'required|in:Ya,Tidak',
             'sinopsis'       => 'required|string',
@@ -264,6 +265,7 @@ class FilmController extends Controller
             'name.required'           => 'Judul film wajib diisi.',
             'duration.required'       => 'Durasi wajib diisi.',
             'duration.min'            => 'Durasi tidak valid.',
+            'duration.max'            => 'Durasi film maksimal 30 menit.',
             'tahun_produksi.required' => 'Tahun produksi wajib diisi.',
             'tahun_produksi.digits'   => 'Tahun produksi harus 4 digit.',
             'subtitle.required'       => 'Subtitle wajib dipilih.',
