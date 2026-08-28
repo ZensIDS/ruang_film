@@ -249,6 +249,30 @@
                                         <i class="fas fa-arrow-right text-sm"></i>
                                     </a>
                                 </div>
+
+                                <div class="pt-6">
+                                    <h4 class="text-white font-semibold text-sm md:text-base mb-3 flex items-center gap-2">
+                                        <i class="fab fa-youtube text-red-500 text-lg"></i>
+                                        Tonton Keseruan FFH 2025
+                                    </h4>
+
+                                    <div
+                                        class="youtube-facade relative w-full aspect-video rounded-2xl overflow-hidden glass-card-light cursor-pointer group"
+                                        data-playlist-id="PLNgzsuZ8m4RI"
+                                        role="button"
+                                        tabindex="0"
+                                        aria-label="Putar playlist YouTube Festival Film Horor"
+                                        onclick="loadFfhYoutubePlaylist(this)"
+                                        onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();loadFfhYoutubePlaylist(this);}">
+                                        <img class="youtube-facade-bg" alt="Thumbnail Playlist Cuplikan Festival Film Horor" loading="lazy" />
+                                        <div class="absolute inset-0 youtube-facade-scrim"></div>
+                                        <div class="absolute inset-0 flex flex-col items-center justify-center gap-3 px-4 text-center">
+                                            <div class="youtube-play-btn w-16 h-16 md:w-20 md:h-20 rounded-full bg-red-600 flex items-center justify-center transition-transform duration-300 group-hover:scale-110">
+                                                <i class="fas fa-play text-white text-xl md:text-2xl ml-1"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -453,4 +477,51 @@
 
     @include('landing.partials.partner-sections')
 </main>
+
+<script>
+    // Ambil thumbnail asli playlist YouTube (bukan gradient buatan) via oEmbed,
+    // hanya untuk tampilan facade. Video tetap tidak diputar/di-load sampai diklik.
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.youtube-facade[data-playlist-id]').forEach(function (facade) {
+            var playlistId = facade.getAttribute('data-playlist-id');
+            var img = facade.querySelector('img.youtube-facade-bg');
+            if (!playlistId || !img) return;
+
+            var oembedUrl = 'https://www.youtube.com/oembed?format=json&url=' +
+                encodeURIComponent('https://www.youtube.com/playlist?list=' + playlistId);
+
+            fetch(oembedUrl)
+                .then(function (res) { return res.ok ? res.json() : Promise.reject(); })
+                .then(function (data) {
+                    if (data && data.thumbnail_url) {
+                        img.src = data.thumbnail_url;
+                    }
+                })
+                .catch(function () {
+                    // Biarkan fallback warna solid dari CSS jika thumbnail gagal diambil.
+                });
+        });
+    });
+
+    // Playlist YouTube "What Happened Last Year" hanya dimuat saat diklik,
+    // supaya tidak auto-play & tidak membebani load halaman.
+    function loadFfhYoutubePlaylist(el) {
+        var playlistId = el.getAttribute('data-playlist-id');
+        var iframe = document.createElement('iframe');
+        iframe.className = 'absolute inset-0 w-full h-full';
+        iframe.src = 'https://www.youtube-nocookie.com/embed/videoseries?list=' + playlistId + '&autoplay=1&rel=0';
+        iframe.title = 'Playlist YouTube Festival Film Horor';
+        iframe.setAttribute('frameborder', '0');
+        iframe.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share');
+        iframe.setAttribute('allowfullscreen', '');
+
+        el.innerHTML = '';
+        el.appendChild(iframe);
+        el.classList.remove('cursor-pointer', 'group');
+        el.removeAttribute('onclick');
+        el.removeAttribute('onkeydown');
+        el.removeAttribute('role');
+        el.removeAttribute('tabindex');
+    }
+</script>
 @endsection

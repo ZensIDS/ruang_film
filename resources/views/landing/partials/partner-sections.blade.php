@@ -26,6 +26,7 @@
         [
             'landing/images/sponsor/Info pacitan.png',
             'landing/images/sponsor/KNPI.png',
+            'landing/images/sponsor/inalite_jpg.png',
             'landing/images/sponsor/Karang Taruna.png',
             'landing/images/sponsor/Kojuwa.png',
             'landing/images/sponsor/Lentera Digital Nusantara.png',
