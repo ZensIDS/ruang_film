@@ -489,7 +489,14 @@ class FilmController extends Controller
             $selectedCategoryId = $this->resolveCategoryId($request);
             $selectedCurationStatus = $this->resolveCurationStatus($request);
 
-            $query = Film::with(['user.category', 'category', 'submissionSetting']);
+            $query = Film::with([
+                'user.category',
+                'user.detail',
+                'category',
+                'submissionSetting',
+                'submissionReviews',
+                'juryScores',
+            ]);
 
             if ($selectedSubmissionSettingId) {
                 $query->where('submission_setting_id', $selectedSubmissionSettingId);
@@ -508,7 +515,14 @@ class FilmController extends Controller
                 ->orderByDesc('id')
                 ->get();
         } else {
-            $films = Film::with(['user.category', 'category', 'submissionSetting'])
+            $films = Film::with([
+                'user.category',
+                'user.detail',
+                'category',
+                'submissionSetting',
+                'submissionReviews',
+                'juryScores',
+            ])
                 ->where('user_id', auth()->id())
                 ->orderByDesc('created_at')
                 ->orderByDesc('id')

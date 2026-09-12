@@ -18,14 +18,15 @@ class FilmsExport implements FromView, ShouldAutoSize, WithEvents
     private const ROW_DATA_START = 2;
 
     // Kolom terakhir di tabel -> HARUS sinkron dengan jumlah <th> di view (film/export.blade.php)
-    private const LAST_COLUMN = 'Z';
+    // Update (urutan kolom baru): 35 kolom total (No + 23 kolom prioritas + 11 kolom lama) = A..AI
+    private const LAST_COLUMN = 'AI';
 
     // Kolom Sinopsis: dikunci lebarnya, tidak ikut auto-size
-    private const SINOPSIS_COLUMN = 'J';
+    private const SINOPSIS_COLUMN = 'Q';
     private const SINOPSIS_WIDTH = 30;
 
     // Kolom GSM: sama seperti Sinopsis, isinya bisa panjang (list URL)
-    private const GSM_COLUMN = 'O';
+    private const GSM_COLUMN = 'U';
     private const GSM_WIDTH = 30;
 
     /**
