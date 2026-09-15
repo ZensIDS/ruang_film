@@ -17,6 +17,7 @@ yarn-error.log
 /.idea
 /.vscode
 *.sql
+*.zip
 composer.lock
 package-lock.json
 docker-compose.yml
