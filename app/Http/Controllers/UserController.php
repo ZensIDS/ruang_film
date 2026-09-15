@@ -200,7 +200,6 @@ class UserController extends Controller
     {
         return view('user.indexAuth', [
             'title' => 'User Author',
-            'users' => $this->getPesertaUsers(),
         ]);
     }
 
@@ -232,5 +231,78 @@ class UserController extends Controller
             ->where('role', 'peserta')
             ->latest()
             ->get();
+    }
+
+    /**
+     * Endpoint AJAX untuk DataTables server-side processing di halaman Data Peserta.
+     * Hanya mengambil baris yang sedang ditampilkan (per halaman), bukan semua peserta sekaligus.
+     */
+    public function pesertaData(Request $request)
+    {
+        $query = User::query()->where('role', 'peserta');
+
+        $recordsTotal = (clone $query)->count();
+
+        $search = trim((string) $request->input('search.value'));
+        if ($search !== '') {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('no_hp', 'like', "%{$search}%");
+            });
+        }
+
+        $recordsFiltered = (clone $query)->count();
+
+        $orderColumnMap = [
+            1 => 'name',
+            2 => 'no_hp',
+            3 => 'email',
+            4 => 'role',
+        ];
+        $orderColumnIndex = (int) $request->input('order.0.column', 0);
+        $orderDir = $request->input('order.0.dir', 'asc') === 'desc' ? 'desc' : 'asc';
+        if (isset($orderColumnMap[$orderColumnIndex])) {
+            $query->orderBy($orderColumnMap[$orderColumnIndex], $orderDir);
+        } else {
+            $query->latest();
+        }
+
+        $start = (int) $request->input('start', 0);
+        $length = (int) $request->input('length', 10);
+        if ($length > 0) {
+            $query->skip($start)->take($length);
+        }
+
+        $users = $query->get();
+
+        $canManage = auth()->user()->role !== 'adminsub';
+
+        $data = $users->values()->map(function (User $user, $i) use ($start, $canManage) {
+            $aksi = '<a class="btn btn-info" href="' . route('users.show', $user->id) . '">Show</a>';
+            if ($canManage) {
+                $aksi .= ' <a class="btn btn-warning" href="' . route('users.edit', $user->id) . '">Edit</a>'
+                    . ' <form action="' . route('users.destroy', $user->id) . '" method="post" style="display:inline;">'
+                    . method_field('delete') . csrf_field()
+                    . '<button class="btn btn-danger border-0" onclick="return confirm(\'Are you sure?\')">Hapus</button></form>';
+            }
+
+            return [
+                'DT_RowId' => 'user-' . $user->id,
+                'no' => $start + $i + 1,
+                'name' => e($user->name),
+                'no_hp' => e($user->no_hp),
+                'email' => e($user->email),
+                'role' => strtoupper($user->role),
+                'aksi' => $aksi,
+            ];
+        });
+
+        return response()->json([
+            'draw' => (int) $request->input('draw', 1),
+            'recordsTotal' => $recordsTotal,
+            'recordsFiltered' => $recordsFiltered,
+            'data' => $data,
+        ]);
     }
 }

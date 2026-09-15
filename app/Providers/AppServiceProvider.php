@@ -10,6 +10,7 @@ use Throwable;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Pagination\Paginator;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -30,6 +31,9 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot()
     {
+        // Tampilan AdminLTE 2 pakai Bootstrap 3, jadi link pagination ikut style itu.
+        Paginator::useBootstrapThree();
+
         Blade::directive('currency', function ($expression) {
             return "Rp. <?php echo number_format($expression,0,',','.'); ?>";
         });

@@ -39,11 +39,13 @@ class FilmController extends Controller
             $submissionPeriods = SubmissionSetting::orderByDesc('open_at')->get();
         }
 
-        [$films, $selectedSubmissionSettingId, $selectedCategoryId, $selectedCurationStatus]
-            = $this->getFilteredFilms($request);
+        // Data baris tabel sekarang diambil lewat AJAX (server-side DataTables) di method data(),
+        // supaya halaman ini tidak perlu me-load ribuan film sekaligus.
+        $selectedSubmissionSettingId = $this->resolveSubmissionSettingId($request);
+        $selectedCategoryId = $this->resolveCategoryId($request);
+        $selectedCurationStatus = $this->resolveCurationStatus($request);
 
         return view('film.index', compact(
-            'films',
             'title',
             'categories',
             'submissionPeriods',
@@ -465,7 +467,11 @@ class FilmController extends Controller
 
     public function exportExcel(Request $request)
     {
-        [$films] = $this->getFilteredFilms($request);
+        [$query] = $this->filteredFilmsQuery($request);
+        $films = $query->with(['user.category', 'user.detail', 'submissionSetting', 'submissionReviews', 'juryScores'])
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->get();
 
         $fileName = 'data-submission-film_' . now()->format('Ymd_His') . '.xlsx';
 
@@ -473,30 +479,29 @@ class FilmController extends Controller
     }
 
     /**
-     * Ambil data film + filter yang sedang aktif.
-     * Dipakai bareng oleh index() dan exportExcel() supaya hasilnya selalu sinkron.
+     * Ambil data film + filter yang sedang aktif, dalam bentuk Query Builder (belum di-execute).
+     * Dipakai bareng oleh data() (AJAX DataTables) dan exportExcel() supaya hasilnya selalu sinkron.
      *
-     * @return array{0: \Illuminate\Support\Collection, 1: ?int, 2: ?int, 3: ?string}
+     * @return array{0: \Illuminate\Database\Eloquent\Builder, 1: ?int, 2: ?int, 3: ?string}
      */
-    private function getFilteredFilms(Request $request): array
+    private function filteredFilmsQuery(Request $request): array
     {
         $selectedSubmissionSettingId = null;
         $selectedCategoryId = null;
         $selectedCurationStatus = null;
 
+        // Kolom-kolom yang dibutuhkan di tabel saja (bukan select *) supaya query lebih ringan,
+        // relasi berat (rubrics, scores, dll) sengaja TIDAK dipakai di sini karena tabel ini
+        // hanya menampilkan judul/kategori/durasi/status/peserta.
+        $query = Film::query()->with([
+            'user:id,name',
+            'category:id,name',
+        ]);
+
         if (auth()->user()->hasRole(['admin', 'adminsub', 'viewer'])) {
             $selectedSubmissionSettingId = $this->resolveSubmissionSettingId($request);
             $selectedCategoryId = $this->resolveCategoryId($request);
             $selectedCurationStatus = $this->resolveCurationStatus($request);
-
-            $query = Film::with([
-                'user.category',
-                'user.detail',
-                'category',
-                'submissionSetting',
-                'submissionReviews',
-                'juryScores',
-            ]);
 
             if ($selectedSubmissionSettingId) {
                 $query->where('submission_setting_id', $selectedSubmissionSettingId);
@@ -509,26 +514,124 @@ class FilmController extends Controller
             if ($selectedCurationStatus) {
                 $query->where('curation_status', $selectedCurationStatus);
             }
-
-            $films = $query
-                ->orderByDesc('created_at')
-                ->orderByDesc('id')
-                ->get();
         } else {
-            $films = Film::with([
-                'user.category',
-                'user.detail',
-                'category',
-                'submissionSetting',
-                'submissionReviews',
-                'juryScores',
-            ])
-                ->where('user_id', auth()->id())
-                ->orderByDesc('created_at')
-                ->orderByDesc('id')
-                ->get();
+            $query->where('user_id', auth()->id());
         }
 
-        return [$films, $selectedSubmissionSettingId, $selectedCategoryId, $selectedCurationStatus];
+        return [$query, $selectedSubmissionSettingId, $selectedCategoryId, $selectedCurationStatus];
+    }
+
+    /**
+     * Endpoint AJAX untuk DataTables server-side processing.
+     * Hanya mengambil & mengirim baris yang sedang ditampilkan di halaman (pageLength),
+     * bukan seluruh data submission sekaligus.
+     */
+    public function data(Request $request)
+    {
+        if ($redirect = $this->redirectGeneralBuyerAway()) {
+            abort(403);
+        }
+
+        [$query] = $this->filteredFilmsQuery($request);
+
+        $recordsTotal = (clone $query)->count();
+
+        // Pencarian global (judul film / nama peserta / nama sutradara)
+        $search = trim((string) $request->input('search.value'));
+        if ($search !== '') {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('sutradara', 'like', "%{$search}%")
+                    ->orWhereHas('user', function ($uq) use ($search) {
+                        $uq->where('name', 'like', "%{$search}%");
+                    });
+            });
+        }
+
+        // Filter kategori khusus untuk peserta (dropdown "Filter Kategori" di sisi client)
+        $categoryName = trim((string) $request->input('category_name'));
+        if ($categoryName !== '') {
+            $query->whereHas('category', function ($cq) use ($categoryName) {
+                $cq->where('name', $categoryName);
+            });
+        }
+
+        $recordsFiltered = (clone $query)->count();
+
+        // Sorting: kolom yang bisa di-order sesuai definisi columnDefs di Blade
+        $orderColumnMap = [
+            2 => 'category_id', // urutan by nama kategori didekati lewat category_id, cukup untuk UX
+            3 => 'duration',
+            4 => 'created_at',
+        ];
+        $orderColumnIndex = (int) $request->input('order.0.column', 4);
+        $orderDir = $request->input('order.0.dir', 'desc') === 'asc' ? 'asc' : 'desc';
+        $orderColumn = $orderColumnMap[$orderColumnIndex] ?? 'created_at';
+        $query->orderBy($orderColumn, $orderDir)->orderByDesc('id');
+
+        $start = (int) $request->input('start', 0);
+        $length = (int) $request->input('length', 10);
+        if ($length > 0) {
+            $query->skip($start)->take($length);
+        }
+
+        $films = $query->get();
+
+        $viewer = auth()->user();
+        $canManage = $viewer->role !== 'viewer';
+
+        $data = $films->values()->map(function (Film $film, $i) use ($start, $viewer, $canManage) {
+            $s = $film->statusBadgeFor($viewer);
+
+            $detik = (int) $film->duration;
+            $duration = sprintf('%02d:%02d:%02d', floor($detik / 3600), floor(($detik % 3600) / 60), $detik % 60);
+
+            $posterHtml = $film->poster
+                ? '<img src="' . e($film->poster_url) . '" style="width:72px;height:96px;object-fit:cover;border-radius:4px;flex-shrink:0;border:1px solid #ddd;">'
+                : '<div style="width:36px;height:48px;background:#eee;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#aaa;flex-shrink:0;">N/A</div>';
+
+            $sutradara = $film->sutradara
+                ? '<small class="text-muted">Sutradara : ' . e($film->sutradara) . '</small>'
+                : '';
+
+            $judul = '<div style="display:flex;align-items:center;gap:10px;">' . $posterHtml
+                . '<div><div style="font-weight:600;">' . e($film->name) . '</div>' . $sutradara . '</div></div>';
+
+            $createdAt = optional($film->created_at);
+            $tanggal = $createdAt->timestamp
+                ? $createdAt->format('d M Y') . '<br><small class="text-muted">' . $createdAt->format('H:i') . ' WIB</small>'
+                : '-';
+
+            $status = '<span style="background:' . $s['bg'] . ';color:' . $s['color'] . ';padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap;">'
+                . e($s['label']) . '</span>';
+
+            $aksi = '<a href="' . route('film.show', $film->id) . '" class="btn btn-info btn-xs" title="Detail"><i class="fa fa-eye"></i></a>';
+            if ($canManage) {
+                $aksi .= ' <a href="' . route('film.edit', $film->id) . '" class="btn btn-warning btn-xs" title="Edit"><i class="fa fa-pencil"></i></a>'
+                    . ' <form action="' . route('film.destroy', $film->id) . '" method="POST" style="display:inline-block;" onsubmit="return confirm(\'Yakin ingin menghapus film ini?\')">'
+                    . csrf_field() . method_field('DELETE')
+                    . '<button type="submit" class="btn btn-danger btn-xs" title="Hapus"><i class="fa fa-trash"></i></button></form>';
+            }
+
+            return [
+                'DT_RowId' => 'film-' . $film->id,
+                'no' => $start + $i + 1,
+                'judul' => $judul,
+                'kategori' => $film->category->name ?? '-',
+                'durasi' => $duration,
+                'tanggal' => $tanggal,
+                'tanggal_order' => $createdAt->timestamp ?? 0,
+                'status' => $status,
+                'peserta' => $film->user->name ?? '-',
+                'aksi' => $aksi,
+            ];
+        });
+
+        return response()->json([
+            'draw' => (int) $request->input('draw', 1),
+            'recordsTotal' => $recordsTotal,
+            'recordsFiltered' => $recordsFiltered,
+            'data' => $data,
+        ]);
     }
 }

@@ -104,6 +104,7 @@ Route::post('/logout', [AuthController::class, 'logout']);
 Route::post('/authenticate', [AuthController::class, 'authenticate'])->name('authenticate');
 Route::post('/regist', [AuthController::class, 'registStore'])->name('registStore');
 Route::get('/dashboard', [DashboardController::class, 'index'])->middleware('auth')->name('dashboard');
+Route::get('/dashboard-data', [DashboardController::class, 'data'])->middleware('auth')->name('dashboard.data');
 Route::get('/setting/submission', [SubmissionSettingController::class, 'index'])->middleware(['auth', 'role:admin'])->name('settingIndex');
 Route::post('/setting/submission', [SubmissionSettingController::class, 'store'])->middleware(['auth', 'role:admin'])->name('settingStore');
 Route::put('/setting/submission/{submissionSetting}', [SubmissionSettingController::class, 'update'])->middleware(['auth', 'role:admin'])->name('settingUpdate');
@@ -116,6 +117,7 @@ Route::post('/setting/general', [SubmissionSettingController::class, 'updateGene
 Route::get('users/export-peserta', [UserController::class, 'exportPesertaExcel'])->middleware('auth')->name('users.export-peserta');
 Route::resource('/users', UserController::class)->middleware('auth');
 Route::get('/users/index/author', [UserController::class, 'indexAuth'])->middleware('auth')->name('users.index.author');
+Route::get('/users/index/author/data', [UserController::class, 'pesertaData'])->middleware('auth')->name('users.index.author.data');
 Route::get('/users/index/author/create', [UserController::class, 'createAuthor'])->middleware('auth')->name('users.create.author');
 Route::get('/users/index/kurator', [UserController::class, 'indexKur'])->middleware('auth')->name('users.index.kurator');
 Route::get('/changepass', [UserController::class, 'changePass'])->name('user.changepass');
@@ -127,6 +129,7 @@ Route::post('/biodata', [UserDetailController::class, 'save'])->name('user-detai
 
 // Film
 Route::resource('film', FilmController::class)->middleware('auth');
+Route::get('film-data', [FilmController::class, 'data'])->middleware('auth')->name('film.data');
 Route::get('films/export', [FilmController::class, 'exportExcel'])->name('film.export');
 Route::get('/film/{id}/gsm/download', [FilmController::class, 'downloadGsm'])->name('film.gsm.download');
 

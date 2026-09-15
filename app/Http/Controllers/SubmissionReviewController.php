@@ -35,14 +35,27 @@ class SubmissionReviewController extends Controller
 
         $displayRubric = $this->displayRubric($selectedCategoryId, $stage);
 
-        $query = Film::with([
-            'user.category',
-            'category.rubrics.groups.items',
-            'submissionSetting',
-            'juryScores',
-            'submissionReviews.reviewer',
-            'submissionReviews.scores',
-        ]);
+        // Urutan (siapa yang ditampilkan lebih dulu) dihitung LANGSUNG di database lewat
+        // subquery skor, bukan di PHP setelah semua film ter-load — supaya urutannya tetap
+        // benar walau data sudah dipaginasi (halaman per halaman), bukan diambil sekaligus.
+        if ($stage === ReviewRubric::STAGE_JURY) {
+            $query = Film::query()->selectRaw(
+                'films.*, COALESCE(
+                    (SELECT SUM(sr.total_score) FROM submission_reviews sr WHERE sr.film_id = films.id AND sr.stage = ?),
+                    (SELECT SUM(js.score) FROM jury_scores js WHERE js.film_id = films.id),
+                    0
+                ) as review_sort_score',
+                [ReviewRubric::STAGE_JURY]
+            );
+        } else {
+            $query = Film::query()->selectRaw(
+                'films.*, COALESCE(
+                    (SELECT SUM(sr.total_score) FROM submission_reviews sr WHERE sr.film_id = films.id AND sr.stage = ?),
+                    0
+                ) as review_sort_score',
+                [ReviewRubric::STAGE_CURATION]
+            );
+        }
 
         if ($selectedSubmissionSettingId) {
             $query->where('submission_setting_id', $selectedSubmissionSettingId);
@@ -74,9 +87,26 @@ class SubmissionReviewController extends Controller
             $query->where('curation_status', $selectedCurationStatus);
         }
 
-        $films = $this->sortFilmsByStage(
-            $this->attachReviewMetrics($query->latest()->get(), $displayRubric, $stage),
-            $stage
+        $films = $query
+            ->orderByDesc('review_sort_score')
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->paginate(25)
+            ->withQueryString();
+
+        // Relasi berat cuma di-load untuk film yang benar-benar tampil di halaman ini
+        // (maksimal 25), bukan untuk seluruh data submission.
+        $films->getCollection()->load([
+            'user.category',
+            'category.rubrics.groups.items',
+            'submissionSetting',
+            'juryScores',
+            'submissionReviews.reviewer',
+            'submissionReviews.scores',
+        ]);
+
+        $films->setCollection(
+            $this->attachReviewMetrics($films->getCollection(), $displayRubric, $stage)
         );
 
         return view('review.index', [
@@ -571,14 +601,4 @@ class SubmissionReviewController extends Controller
         });
     }
 
-    protected function sortFilmsByStage($films, $stage)
-    {
-        $scoreKey = $stage === ReviewRubric::STAGE_JURY
-            ? 'jury_average_score'
-            : 'curation_average_score';
-
-        return $films->sortByDesc(function ($film) use ($scoreKey) {
-            return $film->{$scoreKey};
-        })->values();
-    }
 }

@@ -275,58 +275,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @forelse($submissions as $item)
-                            <tr>
-                                <td class="text-center" style="vertical-align:middle;">{{ $loop->iteration }}</td>
-
-                                <td style="vertical-align:middle;">
-                                    <div style="display:flex;align-items:center;gap:10px;">
-                                        @if($item->poster)
-                                        <img src="{{ $item->poster_url }}"
-                                            style="width:80px;height:104px;border-radius:5px;object-fit:cover;flex-shrink:0;">
-                                        @else
-                                        <div style="width:80px;height:104px;border-radius:5px;background:#ddd;display:flex;align-items:center;justify-content:center;font-size:10px;color:#999;flex-shrink:0;">N/A</div>
-                                        @endif
-                                        <div>
-                                            <div style="font-weight:600;">{{ $item->name }}</div>
-                                            <div style="color:#888;font-size:11px;">Peserta: {{ $item->user->name ?? '-' }}</div>
-                                            <div style="color:#aaa;font-size:11px;">Sutradara: {{ $item->sutradara }}</div>
-                                        </div>
-                                    </div>
-                                </td>
-
-                                <td style="vertical-align:middle;">{{ $item->category->name ?? '-' }}</td>
-
-                                <td style="vertical-align:middle;">
-                                    @php
-                                    $jam = floor($item->duration / 3600);
-                                    $menit = floor(($item->duration % 3600) / 60);
-                                    $sisa = $item->duration % 60;
-                                    @endphp
-                                    {{ sprintf('%02d:%02d:%02d', $jam, $menit, $sisa) }}
-                                </td>
-
-                                <td style="vertical-align:middle;" data-order="{{ optional($item->created_at)->timestamp ?? 0 }}">
-                                    <div>{{ \Carbon\Carbon::parse($item->created_at)->format('d M Y') }}</div>
-                                    <div style="color:#aaa;font-size:11px;">{{ \Carbon\Carbon::parse($item->created_at)->format('H:i') }} WIB</div>
-                                </td>
-
-                                <td style="vertical-align:middle;">
-                                    @php $s = $item->statusBadgeFor(auth()->user()); @endphp
-                                    <span style="background:{{ $s['bg'] }};color:{{ $s['color'] }};padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap;">
-                                        {{ $s['label'] }}
-                                    </span>
-                                </td>
-
-                                <td style="vertical-align:middle;">
-                                    <a href="{{ route('film.show', $item->id) }}"
-                                        style="border:1px solid #ddd;background:#fff;color:#555;border-radius:6px;padding:5px 11px;font-size:12px;text-decoration:none;display:inline-flex;align-items:center;gap:3px;">
-                                        Lihat Detail ›
-                                    </a>
-                                </td>
-                            </tr>
-                            @empty
-                            @endforelse
+                            {{-- Baris diisi lewat AJAX (server-side DataTables), lihat script di bawah --}}
                         </tbody>
                     </table>
                 </div>
@@ -382,7 +331,17 @@
 
 <script>
     $(document).ready(function() {
+        let categoryNameFilter = '';
+
         const table = $('#tabel-submission').DataTable({
+            processing: true,
+            serverSide: true,
+            ajax: {
+                url: "{{ route('dashboard.data') }}",
+                data: function(d) {
+                    d.category_name = categoryNameFilter;
+                }
+            },
             language: {
                 search: "Cari:",
                 lengthMenu: "Tampilkan _MENU_ data",
@@ -391,6 +350,7 @@
                 infoFiltered: "(difilter dari _MAX_ total data)",
                 zeroRecords: "Tidak ada data yang cocok",
                 emptyTable: "Belum ada submission",
+                processing: "Memuat data...",
                 paginate: {
                     first: "Pertama",
                     last: "Terakhir",
@@ -403,31 +363,43 @@
             order: [
                 [4, 'desc']
             ], // sort by tanggal submit
-            columnDefs: [{
-                orderable: false,
-                targets: [0, 1, 6]
-            }, ],
+            columns: [{
+                    data: 'no',
+                    orderable: false,
+                    searchable: false
+                },
+                {
+                    data: 'judul',
+                    orderable: false
+                },
+                {
+                    data: 'kategori',
+                    orderable: true
+                },
+                {
+                    data: 'durasi',
+                    orderable: true
+                },
+                {
+                    data: 'tanggal',
+                    orderable: true
+                },
+                {
+                    data: 'status',
+                    orderable: false
+                },
+                {
+                    data: 'aksi',
+                    orderable: false,
+                    searchable: false
+                },
+            ],
         });
 
-        table.on('order.dt search.dt draw.dt', function() {
-            const start = table.page.info().start;
-
-            table.column(0, {
-                search: 'applied',
-                order: 'applied',
-                page: 'current'
-            }).nodes().each(function(cell, i) {
-                cell.innerHTML = start + i + 1;
-            });
-        });
-
-        table.draw(false);
-
-        // Filter berdasarkan kolom Kategori (index 2)
+        // Filter berdasarkan kolom Kategori
         $('#filter-kategori').on('change', function() {
-            const val = $(this).val();
-            table.column(2).search(val).draw();
-
+            categoryNameFilter = $(this).val();
+            table.draw();
         });
     });
 </script>

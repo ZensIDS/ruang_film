@@ -106,86 +106,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @forelse ($films as $index => $film)
-                            <tr>
-                                <td>{{ $index + 1 }}</td>
-
-                                {{-- Judul Film + Poster --}}
-                                <td>
-                                    <div style="display:flex; align-items:center; gap:10px;">
-                                        @if($film->poster)
-                                        <img src="{{ $film->poster_url }}"
-                                            style="width:72px; height:96px; object-fit:cover; border-radius:4px; flex-shrink:0; border:1px solid #ddd;">
-                                        @else
-                                        <div style="width:36px; height:48px; background:#eee; border-radius:4px; display:flex; align-items:center; justify-content:center; font-size:10px; color:#aaa; flex-shrink:0;">
-                                            N/A
-                                        </div>
-                                        @endif
-                                        <div>
-                                            <div style="font-weight:600;">{{ $film->name }}</div>
-                                            @if($film->sutradara)
-                                            <small class="text-muted">Sutradara : {{ $film->sutradara }}</small>
-                                            @endif
-                                        </div>
-                                    </div>
-                                </td>
-
-                                {{-- Kategori --}}
-                                <td style="vertical-align: middle;">{{ $film->category->name ?? '-' }}</td>
-
-                                {{-- Durasi HH:MM:SS --}}
-                                <td style="vertical-align: middle;">
-                                    @php
-                                    $detik = $film->duration;
-                                    $jam = floor($detik / 3600);
-                                    $menit = floor(($detik % 3600) / 60);
-                                    $sisa = $detik % 60;
-                                    @endphp
-                                    {{ sprintf('%02d:%02d:%02d', $jam, $menit, $sisa) }}
-                                </td style="vertical-align: middle;">
-
-                                {{-- Tanggal Submit --}}
-                                <td style="vertical-align: middle;" data-order="{{ optional($film->created_at)->timestamp ?? 0 }}">
-                                    {{ \Carbon\Carbon::parse($film->created_at)->format('d M Y') }}<br>
-                                    <small class="text-muted">{{ \Carbon\Carbon::parse($film->created_at)->format('H:i') }} WIB</small>
-                                </td>
-
-                                {{-- Status --}}
-                                <td style="vertical-align: middle;">
-                                    @php $s = $film->statusBadgeFor(auth()->user()); @endphp
-                                    <span style="background:{{ $s['bg'] }}; color:{{ $s['color'] }}; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:600; white-space:nowrap;">
-                                        {{ $s['label'] }}
-                                    </span>
-                                </td>
-
-                                {{-- Peserta --}}
-                                <td style="vertical-align: middle;">{{ $film->user->name ?? '-' }}</td>
-
-                                {{-- Aksi --}}
-                                <td style="vertical-align: middle;">
-                                    <a href="{{ route('film.show', $film->id) }}"
-                                        class="btn btn-info btn-xs" title="Detail">
-                                        <i class="fa fa-eye"></i>
-                                    </a>
-                                    @if(auth()->user()->role != 'viewer')
-                                    <a href="{{ route('film.edit', $film->id) }}"
-                                        class="btn btn-warning btn-xs" title="Edit">
-                                        <i class="fa fa-pencil"></i>
-                                    </a>
-                                    <form action="{{ route('film.destroy', $film->id) }}" method="POST"
-                                        style="display:inline-block;"
-                                        onsubmit="return confirm('Yakin ingin menghapus film ini?')">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="btn btn-danger btn-xs" title="Hapus">
-                                            <i class="fa fa-trash"></i>
-                                        </button>
-                                    </form>
-                                    @endif
-                                </td>
-                            </tr>
-                            @empty
-                            @endforelse
+                            {{-- Baris diisi lewat AJAX (server-side DataTables), lihat script di bawah --}}
                         </tbody>
                     </table>
                 </div>
@@ -198,7 +119,20 @@
 @push('scripts')
 <script>
     $(document).ready(function() {
+        let categoryNameFilter = '';
+
         const table = $('#example4').DataTable({
+            processing: true,
+            serverSide: true,
+            ajax: {
+                url: "{{ route('film.data') }}",
+                data: function(d) {
+                    d.submission_setting_id = "{{ $selectedSubmissionSettingId }}";
+                    d.category_id = "{{ $selectedCategoryId }}";
+                    d.curation_status = "{{ $selectedCurationStatus }}";
+                    d.category_name = categoryNameFilter;
+                }
+            },
             language: {
                 search: "Cari:",
                 lengthMenu: "Tampilkan _MENU_ data",
@@ -207,6 +141,7 @@
                 infoFiltered: "(difilter dari _MAX_ total data)",
                 zeroRecords: "Tidak ada data yang cocok",
                 emptyTable: "Belum ada submission",
+                processing: "Memuat data...",
                 paginate: {
                     first: "Pertama",
                     last: "Terakhir",
@@ -219,30 +154,47 @@
             order: [
                 [4, 'desc']
             ],
-            columnDefs: [{
-                orderable: false,
-                targets: [0, 1, 7]
-            }, ],
+            columns: [{
+                    data: 'no',
+                    orderable: false,
+                    searchable: false
+                },
+                {
+                    data: 'judul',
+                    orderable: false
+                },
+                {
+                    data: 'kategori',
+                    orderable: true
+                },
+                {
+                    data: 'durasi',
+                    orderable: true
+                },
+                {
+                    data: 'tanggal',
+                    orderable: true
+                },
+                {
+                    data: 'status',
+                    orderable: false
+                },
+                {
+                    data: 'peserta',
+                    orderable: false
+                },
+                {
+                    data: 'aksi',
+                    orderable: false,
+                    searchable: false
+                },
+            ],
         });
-
-        table.on('order.dt search.dt draw.dt', function() {
-            const start = table.page.info().start;
-
-            table.column(0, {
-                search: 'applied',
-                order: 'applied',
-                page: 'current'
-            }).nodes().each(function(cell, i) {
-                cell.innerHTML = start + i + 1;
-            });
-        });
-
-        table.draw(false);
 
         @if(!$isSubmissionAdmin)
         $('#filter-kategori').on('change', function() {
-            const val = $(this).val();
-            table.column(2).search(val).draw();
+            categoryNameFilter = $(this).val();
+            table.draw();
         });
         @endif
     });

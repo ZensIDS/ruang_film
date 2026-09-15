@@ -73,7 +73,7 @@
 
                 </div>
                 <div class="box-body table-responsive">
-                    <table id="example1" class="table table-bordered table-striped">
+                    <table id="tabel-review" class="table table-bordered table-striped">
                         <thead>
                             <tr>
                                 <th style="width:50px;">No</th>
@@ -273,6 +273,13 @@
                             @endforeach
                         </tbody>
                     </table>
+                </div>
+                <div class="box-footer" style="display:flex; align-items:center; justify-content:space-between;">
+                    <small class="text-muted">
+                        Menampilkan {{ $films->firstItem() ?? 0 }}–{{ $films->lastItem() ?? 0 }} dari {{ $films->total() }} data,
+                        diurutkan berdasarkan nilai {{ strtolower($currentStageLabel) }} tertinggi.
+                    </small>
+                    {{ $films->onEachSide(1)->links() }}
                 </div>
             </div>
         </div>

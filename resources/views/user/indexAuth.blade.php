@@ -21,7 +21,7 @@
                     </a>
                 </div><!-- /.box-header -->
                 <div class="box-body table-responsive">
-                    <table id="example1" class="table table-bordered table-striped">
+                    <table id="tabel-peserta" class="table table-bordered table-striped">
                         <thead>
                             <tr>
                                 <td>No</td>
@@ -32,28 +32,9 @@
                                 <td>Aksi</td>
                             </tr>
                         </thead>
-                        @foreach ($users as $key)
-                        <tr>
-                            <td>{{ $loop->iteration }}</td>
-                            <td>{{ $key->name }}</td>
-                            <td>{{ $key->no_hp }}</td>
-                            <td>{{ $key->email }}</td>
-                            <td>{{ strtoupper($key->role) }}</td>
-                            <td>
-                                <a class="btn btn-info" href="{{ route('users.show', $key->id) }}">Show</a>
-                                @if (Auth::user()->role != 'adminsub')
-                                <a class="btn btn-warning" href="{{ route('users.edit', $key->id) }}">Edit</a>
-                                <form action="{{ route('users.destroy', $key->id) }}" method="post"
-                                    style="display: inline;">
-                                    @method('delete')
-                                    @csrf
-                                    <button class="btn btn-danger border-0 "
-                                        onclick="return confirm('Are you sure?')">Hapus</button>
-                                </form>
-                                @endif
-                            </td>
-                        </tr>
-                        @endforeach
+                        <tbody>
+                            {{-- Baris diisi lewat AJAX (server-side DataTables), lihat script di bawah --}}
+                        </tbody>
                     </table>
                 </div><!-- /.box-body -->
             </div><!-- /.box -->
@@ -61,3 +42,59 @@
     </div><!-- /.row -->
 </section><!-- /.content -->
 @endsection
+
+@push('scripts')
+<script>
+    $(document).ready(function() {
+        $('#tabel-peserta').DataTable({
+            processing: true,
+            serverSide: true,
+            ajax: "{{ route('users.index.author.data') }}",
+            language: {
+                search: "Cari:",
+                lengthMenu: "Tampilkan _MENU_ data",
+                info: "Menampilkan _START_ - _END_ dari _TOTAL_ data",
+                infoEmpty: "Menampilkan 0 data",
+                infoFiltered: "(difilter dari _MAX_ total data)",
+                zeroRecords: "Tidak ada data yang cocok",
+                emptyTable: "Belum ada peserta",
+                processing: "Memuat data...",
+                paginate: {
+                    first: "Pertama",
+                    last: "Terakhir",
+                    next: "Selanjutnya",
+                    previous: "Sebelumnya",
+                },
+            },
+            pageLength: 10,
+            lengthMenu: [10, 25, 50, 100],
+            order: [
+                [1, 'asc']
+            ],
+            columns: [{
+                    data: 'no',
+                    orderable: false,
+                    searchable: false
+                },
+                {
+                    data: 'name'
+                },
+                {
+                    data: 'no_hp'
+                },
+                {
+                    data: 'email'
+                },
+                {
+                    data: 'role'
+                },
+                {
+                    data: 'aksi',
+                    orderable: false,
+                    searchable: false
+                },
+            ],
+        });
+    });
+</script>
+@endpush
