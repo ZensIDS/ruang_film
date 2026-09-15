@@ -45,6 +45,21 @@ class LandingController extends Controller
         return view('landing.program', $this->buildLandingData());
     }
 
+    /**
+     * Halaman "Konfirmasi Kehadiran" — dituju dari tombol di dashboard saat submission
+     * sudah ditutup. Isinya timeline kegiatan, diambil dari periode submission terbaru
+     * (SubmissionSetting::current()), sama seperti yang dipakai di halaman landing.
+     */
+    public function rsvpTimeline()
+    {
+        $setting = SubmissionSetting::current();
+
+        return view('landing.rsvp-timeline', [
+            'landingSetting' => $setting,
+            'timelineItems'  => $this->buildTimelineItems($setting),
+        ]);
+    }
+
     // Tambahan
     public function portal(Request $request)
     {

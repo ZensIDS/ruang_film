@@ -61,7 +61,7 @@
             </div>
             @else
             {{-- Belum open atau sudah lewat, tampilkan kapan open --}}
-            <div style="background:#f0f4ff; border:1px solid #c5d3f5; border-radius:10px; padding:14px 16px; display:flex; align-items:center; gap:12px;">
+            <div style="position:relative; background:#f0f4ff; border:1px solid #c5d3f5; border-radius:10px; padding:14px 16px; display:flex; align-items:center; gap:12px;">
                 <div style="width:44px;height:44px;border-radius:10px;background:#dce6ff;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">🔒</div>
                 <div>
                     @if(now()->lessThan($setting->open_at))
@@ -97,18 +97,35 @@
                     @else
                     {{-- Sudah ditutup --}}
                     <div style="font-size:11px;color:#a03030;font-weight:600;">Submission Telah Ditutup</div>
-                    <div style="font-size:16px;font-weight:700;color:#7a1a1a;">
-                        {{ $setting->close_at->translatedFormat('d F Y') }}
+                    <div style="font-size:13px;color:#7a1a1a;margin-top:2px;">
+                        Periode submission untuk saat ini sudah berakhir.
                     </div>
-                    <div style="font-size:11px;color:#a03030;">
-                        {{ $setting->close_at->format('H:i') }} WIB
+
+                    @if(auth()->user()->role == 'peserta' && isset($approvedFilmTitles))
+                    @if($approvedFilmTitles->isNotEmpty())
+                    @php
+                    $quotedTitles = $approvedFilmTitles->map(fn($t) => '"' . $t . '"')->implode(', ');
+                    @endphp
+                    <div style="margin-top:10px;background:#e6f9ef;border:1px solid #b7ecd1;border-radius:8px;padding:10px 12px;font-size:13px;color:#1a7a45;line-height:1.5;">
+                        🎉 Selamat! Film Kamu dengan judul {{ $quotedTitles }} Lolos Official Selection FFH 2026.
                     </div>
-                    <div style="margin-top:6px;background:#fde8e8;color:#a03030;border-radius:6px;padding:4px 12px;font-size:11px;font-weight:600;display:inline-block;">
-                        Ditutup {{ $setting->close_at->diffForHumans() }}
+                    @elseif($totalFilm > 0)
+                    <div style="margin-top:10px;background:#f5f0fb;border:1px solid #ddd0f0;border-radius:8px;padding:10px 12px;font-size:13px;color:#6b4faa;line-height:1.5;">
+                        Mohon Maaf, Film Kamu Belum Lolos &ldquo;Official Selection&rdquo;<br>
+                        Terima kasih telah berpartisipasi dalam Festival Film Horor 2026.
                     </div>
+                    @endif
+                    @endif
+
+                    @if(auth()->user()->role == 'peserta' && isset($approvedFilmTitles) && $approvedFilmTitles->isNotEmpty())
+                    <a href="{{ route('rsvp.timeline') }}"
+                        style="margin-top:12px; background:#1a7a45; color:#fff; border-radius:8px; padding:7px 16px; font-size:12px; font-weight:600; text-decoration:none; display:inline-flex; align-items:center; gap:6px; box-shadow:0 2px 6px rgba(26,122,69,0.3);">
+                        <i class="fa fa-calendar-check-o"></i> Konfirmasi Kehadiran Di FFH 2026
+                    </a>
                     @endif
                 </div>
             </div>
+            @endif
             @endif
             @else
             {{-- Setting belum diatur oleh admin --}}

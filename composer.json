@@ -8,7 +8,7 @@
     ],
     "license": "MIT",
     "require": {
-        "php": "^7.3|^8.2",
+        "php": "^8.0",
         "barryvdh/laravel-dompdf": "^2.0",
         "fruitcake/laravel-cors": "^2.0",
         "google/apiclient": "^2.0",
@@ -67,7 +67,11 @@
     "config": {
         "optimize-autoloader": true,
         "preferred-install": "dist",
-        "sort-packages": true
+        "sort-packages": true,
+        "platform-check": false,
+        "platform": {
+            "php": "8.2.0"
+        }
     },
     "minimum-stability": "dev",
     "prefer-stable": true

@@ -42,6 +42,7 @@ Route::get('/storage/{path}', [PublicStorageController::class, 'show'])
 // Landing
 Route::get('/', [LandingController::class, 'home'])->name('landing.home');
 Route::get('/program', [LandingController::class, 'program'])->name('landing.program');
+Route::get('/konfirmasi-kehadiran', [LandingController::class, 'rsvpTimeline'])->name('rsvp.timeline');
 Route::get('/programs', [LandingProgramController::class, 'index'])->name('programs.index');
 Route::get('/programs/{program:slug}', [LandingProgramController::class, 'show'])->name('programs.show');
 Route::get('/umum', function () {
@@ -132,6 +133,7 @@ Route::resource('film', FilmController::class)->middleware('auth');
 Route::get('film-data', [FilmController::class, 'data'])->middleware('auth')->name('film.data');
 Route::get('films/export', [FilmController::class, 'exportExcel'])->name('film.export');
 Route::get('/film/{id}/gsm/download', [FilmController::class, 'downloadGsm'])->name('film.gsm.download');
+Route::post('/film/{film}/originality-letter', [FilmController::class, 'uploadOriginalityLetter'])->middleware('auth')->name('film.originality-letter.store');
 
 // Category
 Route::resource('/categories', CategoryController::class)->middleware('auth');

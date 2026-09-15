@@ -1,36 +1,36 @@
 # Penyesuaian Session 2
 
 ## landing Page
-- Home
-    - Add button Guide Book -> redirect newpage with flipbook pdf
-    - Timeline still displaying after submission closed (Segera)
-- Program
-    - All Program (Hidden on Berita)
-    - All Berita (Hidden on Program)
-    - Add CRUD Juri on Submission setting -> Juri by categories -> Slide display
-    - add kurator -> Kurator for all
-    - Build section collapse all section
-    - CRUD FAQ
-- Berita
-    - Removed badge on Berita
+[ ] Home
+    [ ] Add button Guide Book -> redirect newpage with flipbook pdf
+    [x] Timeline still displaying after submission closed (Segera)
+[ ] Program
+    [ ] All Program (Hidden on Berita)
+    [ ] All Berita (Hidden on Program)
+    [ ] Add CRUD Juri on Submission setting -> Juri by categories -> Slide display
+    [ ] add kurator -> Kurator for all
+    [ ] Build section collapse all section
+    [ ] CRUD FAQ
+[x]Berita
+    [x] Removed badge on Berita
 
 ## Peserta (Login Peserta)
-- Dashboard
-    - tanggal penutupan dihilangkan (Segera)
-    - Add RSVP button -> redirect google-form -> "Konfirmasi Kehadiran Di FFH 2026" (Segera)
-    - Penambahan Notice "Official Selection" Lolos dan Tidak Lolos (Segera)
-    - Add button download template orisinalitas karya (Segera)
-    - Add button upload orisinalitas karya (Segera)
-    - Button trigger pop up timeline -> Timeline table -> Redirect new page with alert program ditutup (RSVP button included) (Segera)
+[x] Dashboard
+    [x] tanggal penutupan dihilangkan (Segera)
+    [x] Add RSVP button -> redirect google-form -> "Konfirmasi Kehadiran Di FFH 2026" (Segera)
+    [x] Penambahan Notice "Official Selection" Lolos dan Tidak Lolos (Segera)
+    [x] Add button download template orisinalitas karya (Segera)
+    [x] Add button upload orisinalitas karya (Segera)
+    [x] Button trigger pop up timeline -> Timeline table -> Redirect new page with alert program ditutup (RSVP button included) (Segera)
 
 ## Superadmin
-- User Admin
-    - Admin Khusus Program -> Treeview Program
-- Superadmin Edited Nilai Juri & Kurator
+[ ] User Admin
+    [ ] Admin Khusus Program -> Treeview Program
+[ ] Superadmin Edited Nilai Juri & Kurator
 
 ## Admin Merchandise
-- Modified download excel -> ditampilkan detail order
-- Add download button on order datatable -> all detail of order -> enabled download massal
+[ ] Modified download excel -> ditampilkan detail order
+[ ] Add download button on order datatable -> all detail of order -> enabled download massal
 
 ## Backend
-- Optimize Datatable (Lemot) -> All page (Segera)
+[x]Optimize Datatable (Lemot) -> All page (Segera) -> Done

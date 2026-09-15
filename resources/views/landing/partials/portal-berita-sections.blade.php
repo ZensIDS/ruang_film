@@ -20,7 +20,7 @@
                     @foreach ($portalPrograms as $program)
                         @include('landing.partials.program-card', [
                             'program' => $program,
-                            'showProgramCategory' => true,
+                            'showProgramCategory' => false,
                         ])
                     @endforeach
                 </div>

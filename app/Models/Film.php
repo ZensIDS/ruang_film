@@ -314,6 +314,11 @@ class Film extends Model
         return $this->mediaUrl($this->other_2);
     }
 
+    public function getOriginalityLetterUrlAttribute()
+    {
+        return $this->mediaUrl($this->originality_letter);
+    }
+
     public function getGsmFilesAttribute()
     {
         return collect(json_decode($this->gsm ?? '[]', true))

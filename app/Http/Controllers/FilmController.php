@@ -390,6 +390,39 @@ class FilmController extends Controller
             ->with('success', 'Submission film berhasil dihapus.');
     }
 
+    /**
+     * Upload / ganti file Surat Orisinalitas Karya.
+     * Hanya bisa dilakukan oleh peserta pemilik film, dan hanya untuk
+     * film yang statusnya sudah Official Selection (approved).
+     * Relasi 1 film : 1 surat, disimpan langsung di kolom films.originality_letter.
+     */
+    public function uploadOriginalityLetter(Request $request, $film)
+    {
+        $film = Film::findOrFail($film);
+
+        abort_unless(auth()->check() && (int) $film->user_id === (int) auth()->id(), 403);
+        abort_unless($film->curation_status === Film::CURATION_APPROVED, 403, 'Upload hanya untuk film Official Selection.');
+
+        $request->validate([
+            'originality_letter' => 'required|file|mimes:pdf,jpg,jpeg,png|max:6144',
+        ], [
+            'originality_letter.required' => 'File Surat Orisinalitas Karya wajib diupload.',
+            'originality_letter.file'     => 'File tidak valid.',
+            'originality_letter.mimes'    => 'File harus berformat PDF, JPG, atau PNG.',
+            'originality_letter.max'      => 'Ukuran file maksimal 6MB.',
+        ]);
+
+        if ($film->originality_letter) {
+            Storage::disk('public')->delete($film->originality_letter);
+        }
+
+        $film->originality_letter = $request->file('originality_letter')->store('originality-letters', 'public');
+        $film->originality_letter_uploaded_at = now();
+        $film->save();
+
+        return back()->with('success', 'Surat Orisinalitas Karya berhasil diupload.');
+    }
+
     public function downloadGsm($id)
     {
         if ($redirect = $this->redirectGeneralBuyerAway()) {

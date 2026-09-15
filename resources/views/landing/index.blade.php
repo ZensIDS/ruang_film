@@ -347,6 +347,9 @@
         'winnerSubmissionPeriod' => $winnerSubmissionPeriod ?? null,
     ])
 
+    @include('layouts.landing.timeline-kompetisi-film', ['timelineItems' => $timelineItems])
+
+
     @if($showLandingProgramSections)
     <section class="max-w-7xl mx-auto px-6 md:px-10 py-24 md:py-28 indigo-program-section">
         <div class="fade-up">
@@ -403,7 +406,7 @@
         </div>
     </section>
 
-    @include('layouts.landing.timeline-kompetisi-film', ['timelineItems' => $timelineItems])
+    {{-- @include('layouts.landing.timeline-kompetisi-film', ['timelineItems' => $timelineItems]) --}}
     @include('layouts.landing.kompetisi-film', [
         'competitionCategories' => $competitionCategories,
         'showCompetitionSubmittedStat' => true,

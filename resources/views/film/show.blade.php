@@ -424,7 +424,7 @@ $currentStep = $currentStepMap[$displayStatus] ?? 1;
                             </div>
                             @endif
 
-                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px;">
+                            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:14px; margin-bottom:14px;">
                                 <div>
                                     <div style="font-size:11px; color:#888; text-transform:uppercase; letter-spacing:.5px; margin-bottom:6px;">Link trailer</div>
                                     <a href="{{ $film->trailer }}" target="_blank"
@@ -439,6 +439,15 @@ $currentStep = $currentStepMap[$displayStatus] ?? 1;
                                         <i class="fa fa-film"></i> Buka File Film <i class="fa fa-external-link" style="font-size:11px;"></i>
                                     </a>
                                 </div>
+                                @if($film->originality_letter)
+                                <div>
+                                    <div style="font-size:11px; color:#888; text-transform:uppercase; letter-spacing:.5px; margin-bottom:6px;">Surat Orisinalitas Karya</div>
+                                    <a href="{{ $film->originality_letter_url }}" target="_blank"
+                                        style="font-size:13px; color:#1a7a45; display:inline-flex; align-items:center; gap:4px; text-decoration:none;">
+                                        <i class="fa fa-file-text-o"></i> Lihat Surat <i class="fa fa-external-link" style="font-size:11px;"></i>
+                                    </a>
+                                </div>
+                                @endif
                             </div>
 
                             {{-- Other (Press Kit / Surat Rekomendasi) --}}

@@ -51,6 +51,12 @@ class DashboardController extends Controller
             ->where('curation_status', Film::CURATION_REJECTED)
             ->count();
 
+        // Judul-judul film milik peserta yang lolos Official Selection,
+        // dipakai untuk kartu pengumuman hasil kurasi di dashboard peserta.
+        $approvedFilmTitles = Film::where('user_id', $userId)
+            ->where('curation_status', Film::CURATION_APPROVED)
+            ->pluck('name');
+
         // Tabel submission sekarang diambil lewat AJAX (server-side DataTables) di data(),
         // supaya halaman dashboard tidak perlu me-load seluruh submission sekaligus.
 
@@ -65,6 +71,7 @@ class DashboardController extends Controller
             'dalamProses',
             'officialSelection',
             'ditolak',
+            'approvedFilmTitles',
             'pengumuman',
             'pesan',
             'title'
@@ -251,7 +258,57 @@ class DashboardController extends Controller
             $status = '<span style="background:' . $s['bg'] . ';color:' . $s['color'] . ';padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap;">'
                 . e($s['label']) . '</span>';
 
-            $aksi = '<a href="' . route('film.show', $film->id) . '" style="border:1px solid #ddd;background:#fff;color:#555;border-radius:6px;padding:5px 11px;font-size:12px;text-decoration:none;display:inline-flex;align-items:center;gap:3px;">Lihat Detail &rsaquo;</a>';
+            // Tombol Download Template & Upload Surat Orisinalitas Karya,
+            // hanya untuk peserta pemilik film yang statusnya Official Selection (approved).
+            if ($film->curation_status === Film::CURATION_APPROVED
+                && $viewer
+                && $viewer->hasRole('peserta')
+                && (int) $film->user_id === (int) $viewer->id
+            ) {
+                $modalId = 'modal-surat-' . $film->id;
+                $hasSurat = (bool) $film->originality_letter;
+
+                $status .= '<div style="margin-top:8px;display:flex;flex-direction:column;gap:6px;align-items:stretch;max-width:190px;">';
+
+                $status .= '<a href="#" target="_blank" style="border:1px solid #1a6fa8;background:#fff;color:#1a6fa8;border-radius:6px;padding:5px 10px;font-size:11px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:5px;white-space:nowrap;">'
+                    . '<i class="fa fa-download"></i> Download Template</a>';
+
+                if ($hasSurat) {
+                    $status .= '<a href="' . e($film->originality_letter_url) . '" target="_blank" style="border:1px solid #1a7a45;background:#e6f9ef;color:#1a7a45;border-radius:6px;padding:5px 10px;font-size:11px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:5px;white-space:nowrap;">'
+                        . '<i class="fa fa-check-circle"></i> Lihat Surat</a>';
+                }
+
+                $status .= '<button type="button" data-toggle="modal" data-target="#' . $modalId . '" style="border:1px solid #b87f00;background:#fff8e6;color:#b87f00;border-radius:6px;padding:5px 10px;font-size:11px;font-weight:600;white-space:nowrap;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:5px;">'
+                    . '<i class="fa fa-upload"></i> ' . ($hasSurat ? 'Ganti Surat' : 'Upload Surat') . '</button>';
+
+                $status .= '</div>';
+
+                // Modal upload (Bootstrap 3, sudah responsive untuk mobile secara default)
+                $status .= '<div class="modal fade" id="' . $modalId . '" tabindex="-1" role="dialog" aria-labelledby="' . $modalId . '-label">'
+                    . '<div class="modal-dialog" role="document" style="margin:10vh auto;max-width:420px;width:92%;">'
+                    . '<div class="modal-content" style="border-radius:10px;overflow:hidden;">'
+                    . '<div class="modal-header" style="background:#fff8e6;border-bottom:1px solid #ffe0a0;padding:14px 18px;">'
+                    . '<button type="button" class="close" data-dismiss="modal" aria-label="Close" style="font-size:22px;">&times;</button>'
+                    . '<h4 class="modal-title" id="' . $modalId . '-label" style="font-size:15px;font-weight:700;color:#7a5000;margin:0;">'
+                    . ($hasSurat ? 'Ganti' : 'Upload') . ' Surat Orisinalitas Karya</h4>'
+                    . '</div>'
+                    . '<form action="' . route('film.originality-letter.store', $film->id) . '" method="POST" enctype="multipart/form-data">'
+                    . '<input type="hidden" name="_token" value="' . csrf_token() . '">'
+                    . '<div class="modal-body" style="padding:18px;">'
+                    . '<p style="font-size:12px;color:#888;margin-bottom:6px;">Film: <b>' . e($film->name) . '</b></p>'
+                    . ($hasSurat ? '<p style="font-size:12px;margin-bottom:12px;"><a href="' . e($film->originality_letter_url) . '" target="_blank" style="color:#1a7a45;font-weight:600;"><i class="fa fa-file-text-o"></i> Lihat file yang sudah diupload</a></p>' : '')
+                    . '<label style="display:block;font-size:12px;font-weight:600;color:#555;margin-bottom:6px;">Pilih File (PDF/JPG/PNG, maks 6MB)</label>'
+                    . '<input type="file" name="originality_letter" accept=".pdf,.jpg,.jpeg,.png" required style="width:100%;font-size:12px;padding:6px 0;">'
+                    . '</div>'
+                    . '<div class="modal-footer" style="padding:12px 18px;border-top:1px solid #f0f0f0;display:flex;gap:8px;justify-content:flex-end;">'
+                    . '<button type="button" data-dismiss="modal" style="border:1px solid #ddd;background:#fff;color:#555;border-radius:6px;padding:7px 16px;font-size:12px;font-weight:600;cursor:pointer;">Batal</button>'
+                    . '<button type="submit" style="border:none;background:#e6a800;color:#fff;border-radius:6px;padding:7px 16px;font-size:12px;font-weight:600;cursor:pointer;">Simpan</button>'
+                    . '</div>'
+                    . '</form>'
+                    . '</div></div></div>';
+            }
+
+            $aksi = '<a href="' . route('film.show', $film->id) . '" style="border:1px solid #ddd;background:#fff;color:#555;border-radius:6px;padding:5px 11px;font-size:12px;text-decoration:none;display:inline-flex;align-items:center;gap:3px;"> Detail</a>';
 
             return [
                 'DT_RowId' => 'submission-' . $film->id,
