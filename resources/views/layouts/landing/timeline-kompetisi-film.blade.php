@@ -1,6 +1,11 @@
 <!-- ================================================== -->
 <!-- SECTION: TIMELINE KOMPETISI FILM -->
 <!-- ================================================== -->
+@php
+    $hideHeader = $hideHeader ?? false;
+@endphp
+
+@unless($hideHeader)
 <section class="max-w-7xl mx-auto px-6 md:px-10 py-24 md:py-28 timeline-section">
     <div class="fade-up">
         <p class="text-purple-400 text-sm md:text-base uppercase tracking-wider font-semibold mb-2">
@@ -10,6 +15,7 @@
             Timeline Kompetisi Film
         </h2>
     </div>
+@endunless
 
     <div class="relative mt-16 md:mt-20 fade-up">
         <div class="relative grid grid-cols-1 md:grid-cols-5 gap-8 md:gap-4 lg:gap-6 z-10">
@@ -45,4 +51,6 @@
 
         <div class="md:hidden absolute left-6 top-0 bottom-0 w-[2px] bg-gradient-to-b from-purple-500/20 via-purple-500/60 to-purple-500/20"></div>
     </div>
+@unless($hideHeader)
 </section>
+@endunless

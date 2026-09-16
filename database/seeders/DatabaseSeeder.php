@@ -14,15 +14,16 @@ class DatabaseSeeder extends Seeder
     public function run()
     {
         $this->call([
-            ProgramCategorySeeder::class,
-            ProgramSeeder::class,
-            CategorySeeder::class,
-            SubmissionSettingSeeder::class,
-            AppSettingSeeder::class,
-            UserSeeder::class,
-            CommerceSeeder::class,
-            RubrikPenilaianSeeder::class,
-            FilmSeeder::class,
+            // ProgramCategorySeeder::class,
+            // ProgramSeeder::class,
+            // CategorySeeder::class,
+            FaqSeeder::class,
+            // SubmissionSettingSeeder::class,
+            // AppSettingSeeder::class,
+            // UserSeeder::class,
+            // CommerceSeeder::class,
+            // RubrikPenilaianSeeder::class,
+            // FilmSeeder::class,
         ]);
     }
 }

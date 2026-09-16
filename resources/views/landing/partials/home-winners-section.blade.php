@@ -4,7 +4,7 @@
             LATEST CLOSED COMPETITION
         </p>
         <h2 class="text-3xl md:text-5xl font-bold text-left border-l-8 border-purple-500 pl-6 tracking-tight">
-            Kategori Pemenang
+            {{ ($winnerDisplayMode ?? null) === 'official_selection' ? 'Kategori Official Selection' : 'Kategori Pemenang' }}
         </h2>
         @if($winnerSubmissionPeriod)
         <p class="text-yellow-300 text-lg md:text-2xl font-semibold mt-4">
@@ -20,7 +20,7 @@
             <div class="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
                 <div class="space-y-3">
                     <p class="text-purple-300 text-xs md:text-sm uppercase tracking-[0.3em] font-semibold">
-                        Winner Category
+                        {{ ($winnerDisplayMode ?? null) === 'official_selection' ? 'Official Selection' : 'Winner Category' }}
                     </p>
                     <h3 class="text-2xl md:text-4xl font-bold text-white tracking-tight">
                         {{ $group['category']->name }}
@@ -68,7 +68,7 @@
                                             class="h-full w-full object-cover transition-transform duration-700 hover:scale-105" />
                                         <div class="absolute inset-0 bg-gradient-to-t from-[#07060b] via-[#07060b]/35 to-transparent"></div>
                                         <div class="absolute left-5 top-5 rounded-full border border-white/15 bg-black/35 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.24em] text-white backdrop-blur-md">
-                                            {{ $film->winner_rank_label }}
+                                            {{ ($winnerDisplayMode ?? null) === 'official_selection' ? 'Official Selection' : $film->winner_rank_label }}
                                         </div>
                                         <div class="absolute inset-x-0 bottom-0 p-5">
                                             <p class="text-[11px] uppercase tracking-[0.28em] text-white/60">

@@ -4,13 +4,15 @@
 [ ] Home
     [ ] Add button Guide Book -> redirect newpage with flipbook pdf
     [x] Timeline still displaying after submission closed (Segera)
+    [x] Display Official selection list
+    [x] Set 1row for 4card
 [ ] Program
-    [ ] All Program (Hidden on Berita)
-    [ ] All Berita (Hidden on Program)
-    [ ] Add CRUD Juri on Submission setting -> Juri by categories -> Slide display
+    [x] All Program (Hidden on Berita)
+    [x] All Berita (Hidden on Program)
+    [x] Add CRUD Juri on Submission setting -> Juri by categories -> Slide display
     [ ] add kurator -> Kurator for all
-    [ ] Build section collapse all section
-    [ ] CRUD FAQ
+    [x] Build section collapse all section
+    [x] CRUD FAQ
 [x]Berita
     [x] Removed badge on Berita
 

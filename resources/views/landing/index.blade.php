@@ -141,7 +141,7 @@
                 Festival Board
             </h2>
         </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 lg:gap-10">
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 lg:gap-8">
             @foreach($boardMembers as $member)
             <div class="board-card glass-card-light rounded-2xl overflow-hidden transition-all duration-300 group">
                 <div class="overflow-hidden">
@@ -345,10 +345,8 @@
     @include('landing.partials.home-winners-section', [
         'winnerGroups' => $winnerGroups,
         'winnerSubmissionPeriod' => $winnerSubmissionPeriod ?? null,
+        'winnerDisplayMode' => $winnerDisplayMode ?? null,
     ])
-
-    @include('layouts.landing.timeline-kompetisi-film', ['timelineItems' => $timelineItems])
-
 
     @if($showLandingProgramSections)
     <section class="max-w-7xl mx-auto px-6 md:px-10 py-24 md:py-28 indigo-program-section">
@@ -406,7 +404,7 @@
         </div>
     </section>
 
-    {{-- @include('layouts.landing.timeline-kompetisi-film', ['timelineItems' => $timelineItems]) --}}
+    @include('layouts.landing.timeline-kompetisi-film', ['timelineItems' => $timelineItems])
     @include('layouts.landing.kompetisi-film', [
         'competitionCategories' => $competitionCategories,
         'showCompetitionSubmittedStat' => true,

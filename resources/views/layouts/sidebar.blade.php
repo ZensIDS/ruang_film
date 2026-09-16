@@ -32,6 +32,12 @@
             <li class="{{ request()->routeIs('categories.*') ? 'active' : '' }}">
                 <a href="{{ route('categories.index') }}"><i class="fa fa-film"></i> <span>Kategori Film</span></a>
             </li>
+            <li class="{{ request()->routeIs('faqs.*') ? 'active' : '' }}">
+                <a href="{{ route('faqs.index') }}"><i class="fa fa-question-circle"></i> <span>FAQ</span></a>
+            </li>
+            <li class="{{ request()->routeIs('juries.*') ? 'active' : '' }}">
+                <a href="{{ route('juries.index') }}"><i class="fa fa-gavel"></i> <span>Juri</span></a>
+            </li>
             <li class="treeview {{ request()->routeIs('program-categories.*') || request()->routeIs('admin-programs.*') ? 'active menu-open' : '' }}">
                 <a href="#">
                     <i class="fa fa-calendar"></i> <span>Data Program</span>

@@ -14,6 +14,8 @@ use App\Http\Controllers\LandingController;
 use App\Http\Controllers\LandingProgramController;
 use App\Http\Controllers\MerchandiseCategoryController;
 use App\Http\Controllers\OrderController;
+use App\Http\Controllers\FaqController;
+use App\Http\Controllers\JuryController;
 use App\Http\Controllers\ProgramCategoryController;
 use App\Http\Controllers\PublicStorageController;
 use App\Http\Controllers\SubmissionReviewController;
@@ -187,6 +189,8 @@ Route::middleware(['auth', 'role:admin,adminmerch'])->group(function () {
     Route::resource('/merchandise-categories', MerchandiseCategoryController::class)->except('show');
     Route::resource('/admin-merchandises', AdminMerchandiseController::class)->except('show');
     Route::resource('/program-categories', ProgramCategoryController::class)->except('show');
+    Route::resource('/faqs', FaqController::class)->except('show');
+    Route::resource('/juries', JuryController::class)->except('show');
     Route::resource('/admin-programs', AdminProgramController::class)->except('show');
     Route::resource('/expeditions', ExpeditionController::class)->except('show');
     Route::resource('/bank-accounts', BankAccountController::class)->except('show');

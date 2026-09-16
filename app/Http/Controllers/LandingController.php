@@ -2,13 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Category;
+use App\Models\Faq;
 use App\Models\Film;
+use App\Models\Jury;
 use App\Models\Merchandise;
 use App\Models\MerchandiseCategory;
 use App\Models\Program;
 use App\Models\ProgramCategory;
 use App\Models\SubmissionSetting;
-use App\Models\User;
 use Illuminate\Http\Request;
 
 class LandingController extends Controller
@@ -25,7 +27,7 @@ class LandingController extends Controller
         $featuredPortalPrograms = Program::with('category')
             ->active()
             ->whereHas('category', function ($query) {
-                $query->active();
+                $query->active()->whereNotIn('id', [1, 2, 3]);
             })
             ->latest()
             ->take(3)
@@ -68,7 +70,7 @@ class LandingController extends Controller
         $portalPrograms = Program::with('category')
             ->active()
             ->whereHas('category', function ($query) {
-                $query->active();
+                $query->active()->whereNotIn('id', [1, 2, 3]);
             })
             ->latest()
             ->paginate(9)
@@ -125,54 +127,139 @@ class LandingController extends Controller
         $competitionCategories = $this->buildCompetitionCategories();
         $programCategories     = $this->buildProgramCategories();
 
-        $juryMembers = User::with('category')
-            ->where('role', 'juri')
+        // Juri yang tampil di landing dikelompokkan per kategori kompetisi.
+        // Datanya dikelola lewat menu "Juri" (bukan akun login role juri).
+        // Kategori yang belum diisi datanya tetap tampil (fallback "misterius" di view).
+        $juryCategories = Category::with(['juries' => function ($query) {
+                $query->active()->ordered();
+            }])
+            ->active()
+            ->orderBy('sort_order')
             ->orderBy('name')
             ->get();
 
+        $faqs = Faq::active()->ordered()->get();
+
         $fallbackLastYearFilms = $this->fallbackLastYearFilms($completedPeriod);
         $lastYearFilms         = $this->buildFeaturedLastYearFilms($setting, $fallbackLastYearFilms);
-        $winnerGroups          = collect();
         $derivedStats          = $this->derivedLastYearStats($completedPeriod);
         $festivalStats         = $this->buildFestivalStats($setting, $derivedStats);
 
-        if ($completedPeriod) {
-            $winnerFilms = Film::sortCollectionByWinnerRank(
-                Film::with(['category', 'user.detail'])
-                    ->where('submission_setting_id', $completedPeriod->id)
-                    ->whereNotNull('winner_rank')
-                    ->get()
-            )
-                ->groupBy(function ($film) {
-                    return optional($film->category)->name ?: 'Kategori Lainnya';
-                });
+        // Bagian "LATEST CLOSED COMPETITION":
+        // 1) Kalau kompetisi (periode) yang baru saja ditutup sudah punya data JUARA (winner_rank),
+        //    tampilkan juara periode terbaru itu (aturan lama, prioritas paling tinggi).
+        // 2) Kalau belum ada juara tapi sudah ada film yang lolos Official Selection,
+        //    tampilkan Official Selection dari periode terbaru itu.
+        // 3) Kalau belum ada juara maupun Official Selection sama sekali di periode terbaru,
+        //    fallback tampilkan juara dari periode sebelumnya yang terakhir punya data juara.
+        $winnerGroups           = collect();
+        $winnerSubmissionPeriod = null;
+        $winnerDisplayMode      = null; // 'winner' | 'official_selection'
 
-            $winnerGroups = $winnerFilms
-                ->map(function ($films, $categoryName) {
-                    return [
-                        'category' => (object) ['name' => $categoryName],
-                        'films'    => Film::sortCollectionByWinnerRank($films),
-                    ];
-                })
-                ->values();
+        if ($completedPeriod) {
+            if ($this->periodHasWinners($completedPeriod)) {
+                $winnerSubmissionPeriod = $completedPeriod;
+                $winnerDisplayMode      = 'winner';
+                $winnerGroups           = $this->buildWinnerGroups($completedPeriod, 'winner');
+            } elseif ($this->periodHasOfficialSelection($completedPeriod)) {
+                $winnerSubmissionPeriod = $completedPeriod;
+                $winnerDisplayMode      = 'official_selection';
+                $winnerGroups           = $this->buildWinnerGroups($completedPeriod, 'official_selection');
+            } else {
+                $previousWinnerPeriod = $this->latestPreviousPeriodWithWinners($completedPeriod);
+
+                if ($previousWinnerPeriod) {
+                    $winnerSubmissionPeriod = $previousWinnerPeriod;
+                    $winnerDisplayMode      = 'winner';
+                    $winnerGroups           = $this->buildWinnerGroups($previousWinnerPeriod, 'winner');
+                }
+            }
         }
 
         return [
             'activeLandingSetting'              => $setting,
             'competitionCategories'             => $competitionCategories,
             'programCategories'                 => $programCategories,
-            'juryMembers'                       => $juryMembers,
+            'juryCategories'                    => $juryCategories,
+            'faqs'                              => $faqs,
             'timelineItems'                     => $this->buildTimelineItems($setting),
             'boardMembers'                      => collect(optional($setting)->festival_board ?: [])->filter(function ($member) {
                 return filled(data_get($member, 'name')) || filled(data_get($member, 'title'));
             })->values(),
             'completedSubmissionPeriod'         => $completedPeriod,
-            'winnerSubmissionPeriod'            => $completedPeriod,
+            'winnerSubmissionPeriod'            => $winnerSubmissionPeriod,
+            'winnerDisplayMode'                 => $winnerDisplayMode,
             'lastYearFilms'                     => $lastYearFilms,
             'winnerGroups'                      => $winnerGroups,
             'festivalStats'                     => $festivalStats,
             'competitionFilmSubmittedStatValue' => (int) data_get($festivalStats->first(), 'value', 0),
         ];
+    }
+
+    /**
+     * Cek apakah periode submission tertentu sudah punya film dengan winner_rank terisi.
+     */
+    protected function periodHasWinners(SubmissionSetting $period)
+    {
+        return Film::where('submission_setting_id', $period->id)
+            ->whereNotNull('winner_rank')
+            ->exists();
+    }
+
+    /**
+     * Cek apakah periode submission tertentu sudah punya film Official Selection (approved).
+     */
+    protected function periodHasOfficialSelection(SubmissionSetting $period)
+    {
+        return Film::where('submission_setting_id', $period->id)
+            ->where('curation_status', Film::CURATION_APPROVED)
+            ->exists();
+    }
+
+    /**
+     * Cari periode submission sebelum $period yang terakhir kali sudah punya data juara.
+     */
+    protected function latestPreviousPeriodWithWinners(SubmissionSetting $period)
+    {
+        return SubmissionSetting::where('close_at', '<', $period->close_at)
+            ->orderByDesc('close_at')
+            ->get()
+            ->first(function ($candidate) {
+                return $this->periodHasWinners($candidate);
+            });
+    }
+
+    /**
+     * Bangun grup film (per kategori) untuk ditampilkan di section "LATEST CLOSED COMPETITION".
+     * $mode: 'winner' -> hanya film dengan winner_rank, diurutkan berdasar ranking.
+     *        'official_selection' -> hanya film dengan curation_status approved.
+     */
+    protected function buildWinnerGroups(SubmissionSetting $period, $mode)
+    {
+        $query = Film::with(['category', 'user.detail'])
+            ->where('submission_setting_id', $period->id);
+
+        if ($mode === 'official_selection') {
+            $query->where('curation_status', Film::CURATION_APPROVED);
+            $films = $query->get()->sortByDesc('created_at');
+        } else {
+            $query->whereNotNull('winner_rank');
+            $films = Film::sortCollectionByWinnerRank($query->get());
+        }
+
+        return $films
+            ->groupBy(function ($film) {
+                return optional($film->category)->name ?: 'Kategori Lainnya';
+            })
+            ->map(function ($groupedFilms, $categoryName) use ($mode) {
+                return [
+                    'category' => (object) ['name' => $categoryName],
+                    'films'    => $mode === 'winner'
+                        ? Film::sortCollectionByWinnerRank($groupedFilms)
+                        : $groupedFilms->values(),
+                ];
+            })
+            ->values();
     }
 
     protected function buildTimelineItems(SubmissionSetting $setting = null)
@@ -311,6 +398,7 @@ class LandingController extends Controller
     protected function buildProgramCategories()
     {
         return ProgramCategory::active()
+            ->whereIn('id', [1, 2, 3])
             ->with(['programs' => function ($query) {
                 $query->active()->ordered();
             }])

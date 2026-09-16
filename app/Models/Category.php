@@ -21,6 +21,11 @@ class Category extends Model
         return $this->hasMany(Film::class);
     }
 
+    public function juries()
+    {
+        return $this->hasMany(Jury::class);
+    }
+
     public function rubrics()
     {
         return $this->hasMany(ReviewRubric::class);
