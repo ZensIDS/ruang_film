@@ -23,7 +23,7 @@ class DashboardController extends Controller
 
         if ($user->hasRole('peserta')) {
             return $this->dashboardPeserta();
-        } elseif ($user->hasRole(['admin', 'adminsub', 'kurator', 'juri'])) {
+        } elseif ($user->hasRole(['admin', 'adminsub', 'adminprog', 'kurator', 'juri'])) {
             return $this->dashboardAdmin();
         } elseif ($user->hasRole(['adminmerch'])) {
             return redirect(route('admin.orders.index'));

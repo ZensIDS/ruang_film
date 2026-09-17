@@ -14,7 +14,7 @@ class AdminProgramController extends Controller
     {
         return view('admin-program.index', [
             'title' => 'Program Festival',
-            'programs' => Program::with('category')->ordered()->get(),
+            'programs' => Program::with('category')->latest()->get(),
         ]);
     }
 

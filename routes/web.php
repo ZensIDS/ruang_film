@@ -158,6 +158,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/review/submissions', [SubmissionReviewController::class, 'index'])
         ->middleware('role:admin,adminsub,kurator,juri')
         ->name('review.index');
+    Route::get('/review/submissions/search', [SubmissionReviewController::class, 'search'])
+        ->middleware('role:admin,adminsub,kurator,juri')
+        ->name('review.search');
     Route::post('/review/submissions/start-curation', [SubmissionReviewController::class, 'startCuration'])
         ->middleware('role:admin,adminsub')
         ->name('review.start-curation');
@@ -181,7 +184,7 @@ Route::middleware('auth')->group(function () {
         ->name('review.nominate');
 });
 
-Route::middleware(['auth', 'role:admin,adminmerch'])->group(function () {
+Route::middleware(['auth', 'role:admin,adminmerch,adminprog'])->group(function () {
     Route::get('/expeditions/origin/laravolt-search', [ExpeditionController::class, 'searchLaravoltOrigin'])->name('expeditions.origin.laravolt-search');
     Route::get('/expeditions/origin/rajaongkir-search', [ExpeditionController::class, 'searchRajaOngkirOrigin'])->name('expeditions.origin.rajaongkir-search');
     Route::post('/expeditions/origin/laravolt', [ExpeditionController::class, 'updateOriginFromLaravolt'])->name('expeditions.origin.laravolt');

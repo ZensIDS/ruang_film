@@ -3,31 +3,25 @@
 @php
     $user = auth()->user();
     $isAdmin = $user->hasRole(['admin', 'adminsub']);
-    $canCurate = $user->hasRole('kurator');
     $canJudge = $user->hasRole('juri');
-    $statusClasses = [
-        \App\Models\Film::CURATION_SUBMITTED => 'default',
-        \App\Models\Film::CURATION_VERIFIED => 'info',
-        \App\Models\Film::CURATION_PENDING => 'warning',
-        \App\Models\Film::CURATION_UNDER_REVIEW => 'primary',
-        \App\Models\Film::CURATION_APPROVED => 'primary',
-        \App\Models\Film::CURATION_REJECTED => 'danger',
-        'winner' => 'success',
-    ];
-    $currentStageLabel = $stageLabels[$stage] ?? ucfirst($stage);
 @endphp
 <section class="content-header">
     <h1>Review Submission</h1>
 </section>
 <section class="content">
+
     <div class="row">
-        <div class="col-md-12">
-            <div class="box">
-                <div class="box-header">
-                    <form method="GET" action="{{ route('review.index') }}" class="form-inline">
+        {{-- Box Filter --}}
+        <div class="col-md-7">
+            <div class="box box-solid box-default review-box">
+                <div class="box-header with-border">
+                    <h3 class="box-title"><i class="fa fa-filter"></i> Filter</h3>
+                </div>
+                <div class="box-body">
+                    <form id="review-filter-form" class="review-inline-form">
                         <div class="form-group">
                             <label>Periode</label>
-                            <select name="submission_setting_id" class="form-control" style="margin:0 10px;">
+                            <select name="submission_setting_id" class="form-control">
                                 <option value="">Semua Periode</option>
                                 @foreach($submissionPeriods as $period)
                                 <option value="{{ $period->id }}" {{ (string) $selectedSubmissionSettingId === (string) $period->id ? 'selected' : '' }}>
@@ -40,9 +34,9 @@
                             <label>Kategori</label>
                             @if($canJudge)
                             <input type="hidden" name="category_id" value="{{ $selectedCategoryId }}">
-                            <p class="form-control-static" style="margin:0 10px;">{{ optional($user->category)->name ?: '-' }}</p>
+                            <p class="form-control-static">{{ optional($user->category)->name ?: '-' }}</p>
                             @else
-                            <select name="category_id" class="form-control" style="margin:0 10px;">
+                            <select name="category_id" class="form-control">
                                 <option value="">Semua Kategori</option>
                                 @foreach($categories as $category)
                                 <option value="{{ $category->id }}" {{ (string) $selectedCategoryId === (string) $category->id ? 'selected' : '' }}>
@@ -55,7 +49,7 @@
                         @if(!$canJudge)
                         <div class="form-group">
                             <label>Status</label>
-                            <select name="curation_status" class="form-control" style="margin:0 10px;">
+                            <select name="curation_status" class="form-control">
                                 <option value="">Semua Status</option>
                                 @foreach($statusLabels as $statusValue => $statusLabel)
                                 <option value="{{ $statusValue }}" {{ $selectedCurationStatus === $statusValue ? 'selected' : '' }}>
@@ -68,221 +62,174 @@
                         <input type="hidden" name="curation_status" value="{{ \App\Models\Film::CURATION_APPROVED }}">
                         @endif
                         <input type="hidden" name="stage" value="{{ $stage }}">
-                        <button type="submit" class="btn btn-primary">Filter</button>
+                        <div class="form-group review-inline-form__submit">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fa fa-filter"></i> Terapkan Filter
+                            </button>
+                        </div>
                     </form>
-
                 </div>
-                <div class="box-body table-responsive">
-                    <table id="tabel-review" class="table table-bordered table-striped">
-                        <thead>
-                            <tr>
-                                <th style="width:50px;">No</th>
-                                <th>Nama Tim/Komunitas Produksi</th>
-                                <th>Judul Film</th>
-                                <th>Durasi Film</th>
-                                <th>Tautan Film</th>
-                                {{-- Rubric items hanya admin --}}
-                                @if($isAdmin)
-                                    @foreach($rubricItems as $item)
-                                        <th>{{ $item->title }}</th>
-                                    @endforeach
-                                @endif
-                                {{-- Total Nilai hanya admin --}}
-                                @if($isAdmin)
-                                    <th>Total Nilai {{ $currentStageLabel }}</th>
-                                @endif
-                                <th>Nilai Per Reviewer</th>
-                                <th>Status & Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach($films as $film)
-                            @php
-                                $curationReviews = $film->submissionReviews->where('stage', \App\Models\ReviewRubric::STAGE_CURATION);
-                                $juryReviews     = $film->submissionReviews->where('stage', \App\Models\ReviewRubric::STAGE_JURY);
+            </div>
+        </div>
 
-                                // Juri hanya lihat nilai miliknya sendiri
-                                // Kurator hanya lihat nilai kurasi miliknya sendiri
-                                // Admin lihat semua
-                                if ($isAdmin) {
-                                    $visibleCurationReviews = $curationReviews;
-                                    $visibleJuryReviews     = $juryReviews;
-                                } elseif ($canJudge) {
-                                    $visibleCurationReviews = collect();
-                                    $visibleJuryReviews     = $juryReviews->where('reviewer_id', $user->id);
-                                } elseif ($canCurate) {
-                                    $visibleCurationReviews = $curationReviews->where('reviewer_id', $user->id);
-                                    $visibleJuryReviews     = collect();
-                                } else {
-                                    $visibleCurationReviews = collect();
-                                    $visibleJuryReviews     = collect();
-                                }
-
-                                $statusClass    = $statusClasses[$film->display_status] ?? 'default';
-                                $currentAverage = $stage === \App\Models\ReviewRubric::STAGE_JURY ? $film->jury_average_score : $film->curation_average_score;
-                                $currentCount   = $stage === \App\Models\ReviewRubric::STAGE_JURY ? $film->jury_review_count : $film->curation_review_count;
-                                $jam   = floor($film->duration / 3600);
-                                $menit = floor(($film->duration % 3600) / 60);
-                                $sisa  = $film->duration % 60;
-                            @endphp
-                            <tr>
-                                <td>{{ $loop->iteration }}</td>
-                                <td>
-                                    <strong>{{ $film->user->name ?? '-' }}</strong><br>
-                                    <small>{{ $film->user->category->name ?? $film->category->name ?? '-' }}</small>
-                                </td>
-                                <td>
-                                    <strong>{{ $film->name }}</strong><br>
-                                    <small>{{ $film->sutradara }}</small>
-                                </td>
-                                <td>{{ sprintf('%02d:%02d:%02d', $jam, $menit, $sisa) }}</td>
-                                <td>
-                                    <a href="{{ $film->film }}" target="_blank" class="btn btn-default btn-xs">Film</a>
-                                    <a href="{{ $film->trailer }}" target="_blank" class="btn btn-default btn-xs">Trailer</a>
-                                    <a href="{{ route('film.show', $film) }}" class="btn btn-info btn-xs">Detail</a>
-                                </td>
-
-                                {{-- Rubric item cells hanya admin --}}
-                                @if($isAdmin)
-                                    @foreach($rubricItems as $item)
-                                    @php $summary = $film->rubric_item_summaries->get($item->id); @endphp
-                                    <td style="min-width:150px;">
-                                        @if($summary && $summary['avg_weighted_score'] !== null)
-                                            <strong>{{ number_format((float) $summary['avg_weighted_score'], 2) }}</strong><br>
-                                            <small>Skor {{ number_format((float) $summary['avg_score'], 2) }}</small>
-                                            <div style="margin-top:4px;">
-                                                @foreach($summary['reviewers'] as $reviewerScore)
-                                                    <div><small>{{ $reviewerScore['reviewer'] }}: {{ number_format((float) $reviewerScore['weighted_score'], 2) }}</small></div>
-                                                @endforeach
-                                            </div>
-                                        @else
-                                            -
-                                        @endif
-                                    </td>
-                                    @endforeach
-                                @endif
-
-                                {{-- Total Nilai hanya admin --}}
-                                @if($isAdmin)
-                                <td>
-                                    <strong>{{ number_format($currentAverage, 2) }}</strong><br>
-                                    <span class="label label-success">{{ $currentCount }} Reviewer</span>
-                                </td>
-                                @endif
-
-                                {{-- Nilai Per Reviewer — sesuai role --}}
-                                <td style="min-width:260px;">
-                                    @if($visibleCurationReviews->count())
-                                        {{--  <div><strong>Kurator</strong></div>  --}}
-                                        @foreach($visibleCurationReviews as $review)
-                                        <div style="margin-bottom:4px;">
-                                            {{-- Admin lihat nama reviewer, selain itu tidak --}}
-                                            @if($isAdmin)
-                                                <strong>{{ $review->reviewer->name ?? 'Kurator' }} : {{ number_format((float) $review->total_score, 2) }}</strong>
-                                            @else
-                                                <strong>Total Nilai : </strong><strong>{{ number_format((float) $review->total_score, 2) }}<br></strong><span class="label label-success">{{ $currentCount }} Reviewer</span>
-                                            @endif
-                                            @if($review->note)
-                                                <br><small class="text-muted">{{ $review->note }}</small>
-                                            @endif
-                                        </div>
-                                        @endforeach
-                                    @endif
-
-                                    @if($visibleJuryReviews->count())
-                                        <div style="margin-top:8px;"><strong>Juri</strong></div>
-                                        @foreach($visibleJuryReviews as $review)
-                                        <div style="margin-bottom:4px;">
-                                            @if($isAdmin)
-                                                <small>{{ $review->reviewer->name ?? 'Juri' }}: {{ number_format((float) $review->total_score, 2) }}</small>
-                                            @else
-                                                <small>{{ number_format((float) $review->total_score, 2) }}</small>
-                                            @endif
-                                            @if($review->note)
-                                                <br><small class="text-muted">{{ $review->note }}</small>
-                                            @endif
-                                        </div>
-                                        @endforeach
-                                    @endif
-
-                                    @if(!$visibleCurationReviews->count() && !$visibleJuryReviews->count())
-                                        -
-                                    @endif
-                                </td>
-
-                                {{-- Status & Aksi --}}
-                                <td style="min-width:220px;">
-                                    <span class="label label-{{ $statusClass }}">{{ $film->display_status_label }}</span>
-
-                                    <div style="margin-top:8px;">
-                                        @if($canCurate && in_array($film->curation_status, \App\Models\Film::curatorReviewableStatuses(), true))
-                                            <a href="{{ route('review.score', [$film, \App\Models\ReviewRubric::STAGE_CURATION]) }}" class="btn btn-warning btn-xs" style="margin-bottom:6px;">
-                                                Nilai Kurasi
-                                            </a>
-                                        @endif
-
-                                        @if($canJudge && $film->curation_status === \App\Models\Film::CURATION_APPROVED && (int) $film->category_id === (int) $user->category_id)
-                                            <a href="{{ route('review.score', [$film, \App\Models\ReviewRubric::STAGE_JURY]) }}" class="btn btn-success btn-xs" style="margin-bottom:6px;">
-                                                Nilai Juri
-                                            </a>
-                                        @endif
-                                    </div>
-
-                                    @if($isAdmin)
-                                    <form action="{{ route('review.status', $film) }}" method="POST" style="margin-top:8px;">
-                                        @csrf
-                                        @method('PATCH')
-                                        <div class="input-group input-group-sm">
-                                            <select name="curation_status" class="form-control">
-                                                @foreach($statusLabels as $statusValue => $statusLabel)
-                                                <option value="{{ $statusValue }}" {{ $film->curation_status === $statusValue ? 'selected' : '' }}>
-                                                    {{ $statusLabel }}
-                                                </option>
-                                                @endforeach
-                                            </select>
-                                            <span class="input-group-btn">
-                                                <button type="submit" class="btn btn-default btn-flat">Ubah</button>
-                                            </span>
-                                        </div>
-                                    </form>
-
-                                    @if($film->curation_status === \App\Models\Film::CURATION_APPROVED)
-                                    <form action="{{ route('review.winner-rank', $film) }}" method="POST" style="margin-top:8px;">
-                                        @csrf
-                                        @method('PATCH')
-                                        <div class="input-group input-group-sm">
-                                            <select name="winner_rank" class="form-control">
-                                                <option value="" disabled {{ old('winner_rank', $film->winner_rank) === null ? 'selected' : '' }}>-- Pilih Juara --</option>
-                                                <option value="JUARA 1"        {{ old('winner_rank', $film->winner_rank) == 'JUARA 1'        ? 'selected' : '' }}>JUARA 1</option>
-                                                <option value="JUARA 2"        {{ old('winner_rank', $film->winner_rank) == 'JUARA 2'        ? 'selected' : '' }}>JUARA 2</option>
-                                                <option value="JUARA 3"        {{ old('winner_rank', $film->winner_rank) == 'JUARA 3'        ? 'selected' : '' }}>JUARA 3</option>
-                                                <option value="HARAPAN 1"      {{ old('winner_rank', $film->winner_rank) == 'HARAPAN 1'      ? 'selected' : '' }}>HARAPAN 1</option>
-                                                <option value="HARAPAN 2"      {{ old('winner_rank', $film->winner_rank) == 'HARAPAN 2'      ? 'selected' : '' }}>HARAPAN 2</option>
-                                                <option value="HARAPAN 3"      {{ old('winner_rank', $film->winner_rank) == 'HARAPAN 3'      ? 'selected' : '' }}>HARAPAN 3</option>
-                                                <option value="SPECIAL MENTION" {{ old('winner_rank', $film->winner_rank) == 'SPECIAL MENTION' ? 'selected' : '' }}>SPECIAL MENTION</option>
-                                            </select>
-                                            <span class="input-group-btn">
-                                                <button type="submit" class="btn btn-primary btn-flat">Simpan</button>
-                                            </span>
-                                        </div>
-                                    </form>
-                                    @endif
-                                    @endif
-                                </td>
-                            </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
+        {{-- Box Pencarian — sengaja dipisah dari box Filter --}}
+        <div class="col-md-5">
+            <div class="box box-solid box-default review-box">
+                <div class="box-header with-border">
+                    <h3 class="box-title"><i class="fa fa-search"></i> Pencarian</h3>
                 </div>
-                <div class="box-footer" style="display:flex; align-items:center; justify-content:space-between;">
-                    <small class="text-muted">
-                        Menampilkan {{ $films->firstItem() ?? 0 }}–{{ $films->lastItem() ?? 0 }} dari {{ $films->total() }} data,
-                        diurutkan berdasarkan nilai {{ strtolower($currentStageLabel) }} tertinggi.
-                    </small>
-                    {{ $films->onEachSide(1)->links() }}
+                <div class="box-body">
+                    <div class="input-group">
+                        <span class="input-group-addon"><i class="fa fa-search"></i></span>
+                        <input
+                            type="text"
+                            id="review-search-input"
+                            class="form-control"
+                            value="{{ $search }}"
+                            placeholder="Judul film, sutradara, produser, nama peserta, atau tim/komunitas..."
+                        >
+                        <span class="input-group-btn">
+                            <button type="button" id="review-search-clear" class="btn btn-default" title="Hapus pencarian">
+                                <i class="fa fa-times"></i>
+                            </button>
+                        </span>
+                    </div>
+                    <p class="text-muted review-search-hint">
+                        <i class="fa fa-info-circle"></i> Ketik minimal 2 huruf, hasil otomatis diperbarui.
+                    </p>
                 </div>
             </div>
         </div>
     </div>
+
+    {{-- Box Hasil --}}
+    <div class="row">
+        <div class="col-md-12">
+            <div class="box review-box">
+                <div class="box-header with-border">
+                    <h3 class="box-title"><i class="fa fa-table"></i> Daftar Submission</h3>
+                    <div class="box-tools">
+                        <span id="review-loading-indicator" class="text-muted" style="display:none;">
+                            <i class="fa fa-refresh fa-spin"></i> Memuat...
+                        </span>
+                    </div>
+                </div>
+                <div id="review-table-container" class="review-table-container">
+                    @include('review.partials.table')
+                </div>
+            </div>
+        </div>
+    </div>
+
 </section>
+
+<style>
+    .review-box .box-header.with-border { padding: 12px 15px; }
+    .review-box .box-title { font-size: 15px; font-weight: 600; }
+    .review-box .box-title i { margin-right: 6px; color: #3c8dbc; }
+
+    .review-inline-form { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 14px; }
+    .review-inline-form .form-group { margin-bottom: 0; min-width: 160px; flex: 1 1 160px; }
+    .review-inline-form label { font-weight: 600; font-size: 12px; text-transform: uppercase; color: #777; margin-bottom: 4px; }
+    .review-inline-form__submit { flex: 0 0 auto; min-width: 0; }
+
+    .review-search-hint { margin: 8px 0 0; font-size: 12px; }
+
+    .review-table-container { position: relative; min-height: 120px; }
+    .review-table-container.is-loading { opacity: .45; pointer-events: none; transition: opacity .15s ease; }
+
+    .review-pagination .pagination { margin: 0; }
+</style>
 @endsection
+
+@push('scripts')
+<script>
+    (function () {
+        const searchUrl    = @json(route('review.search'));
+        const filterForm   = document.getElementById('review-filter-form');
+        const searchInput  = document.getElementById('review-search-input');
+        const clearBtn      = document.getElementById('review-search-clear');
+        const container     = document.getElementById('review-table-container');
+        const loadingBadge  = document.getElementById('review-loading-indicator');
+
+        let debounceTimer = null;
+        let activeRequest = null;
+
+        function currentParams(extra) {
+            const params = new URLSearchParams(new FormData(filterForm));
+            if (searchInput.value.trim().length >= 2) {
+                params.set('search', searchInput.value.trim());
+            }
+            if (extra) {
+                Object.keys(extra).forEach(function (key) {
+                    params.set(key, extra[key]);
+                });
+            }
+            return params;
+        }
+
+        function loadTable(extra) {
+            if (activeRequest) {
+                activeRequest.abort();
+            }
+
+            container.classList.add('is-loading');
+            loadingBadge.style.display = 'inline';
+
+            const controller = new AbortController();
+            activeRequest = controller;
+
+            fetch(searchUrl + '?' + currentParams(extra).toString(), {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                signal: controller.signal,
+            })
+                .then(function (response) { return response.text(); })
+                .then(function (html) {
+                    container.innerHTML = html;
+                    bindPaginationLinks();
+                })
+                .catch(function (error) {
+                    if (error.name !== 'AbortError') {
+                        console.error('Gagal memuat data review:', error);
+                    }
+                })
+                .finally(function () {
+                    container.classList.remove('is-loading');
+                    loadingBadge.style.display = 'none';
+                    activeRequest = null;
+                });
+        }
+
+        function bindPaginationLinks() {
+            container.querySelectorAll('.pagination a[href]').forEach(function (link) {
+                link.addEventListener('click', function (event) {
+                    event.preventDefault();
+                    const url = new URL(link.href, window.location.origin);
+                    const page = url.searchParams.get('page') || 1;
+                    loadTable({ page: page });
+                    window.scrollTo({ top: container.offsetTop - 20, behavior: 'smooth' });
+                });
+            });
+        }
+
+        filterForm.addEventListener('submit', function (event) {
+            event.preventDefault();
+            loadTable({ page: 1 });
+        });
+
+        searchInput.addEventListener('input', function () {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(function () {
+                loadTable({ page: 1 });
+            }, 400);
+        });
+
+        clearBtn.addEventListener('click', function () {
+            searchInput.value = '';
+            loadTable({ page: 1 });
+        });
+
+        bindPaginationLinks();
+    })();
+</script>
+@endpush

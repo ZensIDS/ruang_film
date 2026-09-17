@@ -17,6 +17,40 @@ class SubmissionReviewController extends Controller
     {
         $this->syncClosedSubmissionStatuses();
 
+        $data = $this->buildReviewData($request);
+
+        return view('review.index', array_merge($data, [
+            'title'             => 'Review Submission',
+            'submissionPeriods' => SubmissionSetting::orderByDesc('open_at')->get(),
+            'categories'        => Category::orderBy('sort_order')->orderBy('name')->get(),
+        ]));
+    }
+
+    /**
+     * Endpoint AJAX untuk filter & pencarian di halaman Review Submission.
+     *
+     * Sengaja dipisah dari index(): hanya mengembalikan potongan HTML tabel
+     * (partial), bukan halaman penuh, supaya filter periode/kategori/status
+     * maupun pencarian tidak perlu reload seluruh halaman — cukup ganti isi
+     * tabelnya saja lewat JavaScript (lihat resources/views/review/index.blade.php).
+     */
+    public function search(Request $request)
+    {
+        $this->syncClosedSubmissionStatuses();
+
+        $data = $this->buildReviewData($request);
+
+        return view('review.partials.table', $data);
+    }
+
+    /**
+     * Bangun data (films terpaginasi + metadata) berdasarkan filter &
+     * pencarian dari request. Dipakai bareng oleh index() (render halaman
+     * penuh) dan search() (render partial untuk AJAX), supaya logikanya
+     * cuma ada di satu tempat.
+     */
+    protected function buildReviewData(Request $request): array
+    {
         $user      = auth()->user();
         $isAdmin   = $user->hasRole(['admin', 'adminsub']);
         $canCurate = $user->hasRole('kurator');
@@ -26,6 +60,7 @@ class SubmissionReviewController extends Controller
         $selectedSubmissionSettingId = $this->resolveSubmissionSettingId($request);
         $selectedCategoryId          = $this->resolveCategoryId($request);
         $selectedCurationStatus      = $this->resolveCurationStatus($request);
+        $search                      = $this->resolveSearch($request);
         $statusLabels                = Film::curationStatusLabels();
 
         // Admin filter official selection → paksa stage jury
@@ -58,39 +93,49 @@ class SubmissionReviewController extends Controller
         }
 
         if ($selectedSubmissionSettingId) {
-            $query->where('submission_setting_id', $selectedSubmissionSettingId);
+            $query->where('films.submission_setting_id', $selectedSubmissionSettingId);
         }
 
         if ($selectedCategoryId) {
-            $query->where('category_id', $selectedCategoryId);
+            $query->where('films.category_id', $selectedCategoryId);
+        }
+
+        if ($search) {
+            // Ditaruh paling akhir dari filter kolom biasa: filter periode/
+            // kategori/status di atas jalan dulu sebagai kondisi WHERE atas
+            // primary/foreign key film (yang sudah pasti punya index bawaan),
+            // baru query di-JOIN untuk kebutuhan pencarian. Dengan begitu
+            // JOIN & LIKE hanya "melihat" baris yang sudah dipersempit oleh
+            // filter-filter tadi, bukan seluruh tabel films.
+            $this->applySearch($query, $search);
         }
 
         if ($canJudge) {
             if ($user->category_id) {
-                $query->where('category_id', $user->category_id);
+                $query->where('films.category_id', $user->category_id);
             } else {
                 $query->whereRaw('1 = 0');
             }
-            $query->where('curation_status', Film::CURATION_APPROVED);
+            $query->where('films.curation_status', Film::CURATION_APPROVED);
         } elseif ($canCurate) {
             $reviewableStatuses = Film::curatorReviewableStatuses();
 
             if ($selectedCurationStatus && in_array($selectedCurationStatus, $reviewableStatuses, true)) {
-                $query->where('curation_status', $selectedCurationStatus);
+                $query->where('films.curation_status', $selectedCurationStatus);
             } else {
                 $selectedCurationStatus = null;
-                $query->whereIn('curation_status', $reviewableStatuses);
+                $query->whereIn('films.curation_status', $reviewableStatuses);
             }
 
             $statusLabels = array_intersect_key($statusLabels, array_flip($reviewableStatuses));
         } elseif ($selectedCurationStatus) {
-            $query->where('curation_status', $selectedCurationStatus);
+            $query->where('films.curation_status', $selectedCurationStatus);
         }
 
         $films = $query
             ->orderByDesc('review_sort_score')
-            ->orderByDesc('created_at')
-            ->orderByDesc('id')
+            ->orderByDesc('films.created_at')
+            ->orderByDesc('films.id')
             ->paginate(25)
             ->withQueryString();
 
@@ -109,15 +154,13 @@ class SubmissionReviewController extends Controller
             $this->attachReviewMetrics($films->getCollection(), $displayRubric, $stage)
         );
 
-        return view('review.index', [
-            'title'                       => 'Review Submission',
+        return [
             'films'                       => $films,
-            'submissionPeriods'           => SubmissionSetting::orderByDesc('open_at')->get(),
-            'categories'                  => Category::orderBy('sort_order')->orderBy('name')->get(),
             'statusLabels'                => $statusLabels,
             'selectedSubmissionSettingId' => $selectedSubmissionSettingId,
             'selectedCategoryId'          => $selectedCategoryId,
             'selectedCurationStatus'      => $selectedCurationStatus,
+            'search'                      => $search,
             'stage'                       => $stage,
             'stageLabels'                 => ReviewRubric::stageLabels(),
             'displayRubric'               => $displayRubric,
@@ -125,7 +168,7 @@ class SubmissionReviewController extends Controller
             'isAdmin'                     => $isAdmin,
             'canCurate'                   => $canCurate,
             'canJudge'                    => $canJudge,
-        ]);
+        ];
     }
 
     public function startCuration(Request $request)
@@ -462,6 +505,53 @@ class SubmissionReviewController extends Controller
         }
 
         return $request->input('category_id') ?: null;
+    }
+
+    protected function resolveSearch(Request $request)
+    {
+        $search = trim((string) $request->input('search', ''));
+
+        return $search !== '' ? $search : null;
+    }
+
+    /**
+     * Terapkan pencarian ke query film — tanpa perlu index/kolom tambahan
+     * di database.
+     *
+     * Supaya tetap ringan walau datanya sudah banyak:
+     * - JOIN ke `users` & `user_details` dipakai (bukan whereHas/orWhereHas).
+     *   whereHas menghasilkan subquery EXISTS terpisah untuk tiap relasi,
+     *   jadi kalau di-OR beberapa relasi sekaligus, MySQL harus mengeksekusi
+     *   subquery berkorelasi itu untuk tiap baris kandidat. JOIN cukup sekali
+     *   dieksekusi sebagai satu operasi gabungan, jauh lebih murah untuk
+     *   tabel besar.
+     * - JOIN baru ditambahkan kalau memang ada kata kunci (tidak membebani
+     *   query normal ketika user tidak sedang mencari).
+     * - Filter periode/kategori/status (kolom yang sudah punya index bawaan
+     *   seperti primary/foreign key) tetap dijalankan sebagai kondisi WHERE
+     *   biasa, jadi MySQL query planner bisa mempersempit baris lewat kondisi
+     *   itu dulu sebelum mengevaluasi LIKE pada hasil JOIN.
+     * - Kata kunci minimal 2 karakter, biar tidak memicu scan besar untuk
+     *   input 1 huruf yang hasilnya nyaris seluruh tabel.
+     */
+    protected function applySearch($query, string $search): void
+    {
+        if (mb_strlen($search) < 2) {
+            return;
+        }
+
+        $like = '%' . addcslashes($search, '%_\\') . '%';
+
+        $query
+            ->leftJoin('users', 'users.id', '=', 'films.user_id')
+            ->leftJoin('user_details', 'user_details.user_id', '=', 'users.id')
+            ->where(function ($q) use ($like) {
+                $q->where('films.name', 'like', $like)
+                    ->orWhere('films.sutradara', 'like', $like)
+                    ->orWhere('films.produser', 'like', $like)
+                    ->orWhere('users.name', 'like', $like)
+                    ->orWhere('user_details.community_name', 'like', $like);
+            });
     }
 
     protected function resolveCurationStatus(Request $request)

@@ -173,6 +173,31 @@
             </li>
         </ul><!-- /.sidebar-menu -->
         @endif
+
+        @if (Auth::user()->role == 'adminprog')
+            <ul class="sidebar-menu">
+            <li class="{{ request()->routeIs('dashboard') ? 'active' : '' }}">
+                <a href="{{ route('dashboard') }}"><i class="fa fa-tachometer"></i> <span>Dashboard</span></a>
+            </li>
+            <li class="{{ request()->routeIs('faqs.*') ? 'active' : '' }}">
+                <a href="{{ route('faqs.index') }}"><i class="fa fa-question-circle"></i> <span>FAQ</span></a>
+            </li>
+            <li class="treeview {{ request()->routeIs('program-categories.*') || request()->routeIs('admin-programs.*') ? 'active menu-open' : '' }}">
+                <a href="#">
+                    <i class="fa fa-calendar"></i> <span>Data Program</span>
+                    <i class="fa fa-angle-left pull-right"></i>
+                </a>
+                <ul class="treeview-menu" style="{{ request()->routeIs('program-categories.*') || request()->routeIs('admin-programs.*') ? 'display:block;' : '' }}">
+                    <li class="{{ request()->routeIs('program-categories.*') ? 'active' : '' }}">
+                        <a href="{{ route('program-categories.index') }}"><i class="fa fa-circle-o"></i> Kategori Program</a>
+                    </li>
+                    <li class="{{ request()->routeIs('admin-programs.*') ? 'active' : '' }}">
+                        <a href="{{ route('admin-programs.index') }}"><i class="fa fa-circle-o"></i> Program Festival</a>
+                    </li>
+                </ul>
+            </li>
+        </ul><!-- /.sidebar-menu -->
+        @endif
     </section>
     <!-- /.sidebar -->
 </aside>
