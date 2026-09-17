@@ -94,6 +94,7 @@ Route::get('/download/ekatalog', function () {
     $filePath = public_path('landing/pdf/ekatalog-2025.pdf');
     return response()->download($filePath);
 })->name('download.ekatalog');
+Route::get('/guide-book', [LandingController::class, 'guideBook'])->name('landing.guide-book');
 Route::get('/merchandise', [LandingController::class, 'merchandise'])->name('merchandise');
 Route::get('/merchandise/biodata', function () {
     return redirect()->route('user-detail.index');

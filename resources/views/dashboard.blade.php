@@ -101,23 +101,41 @@
                         Periode submission untuk saat ini sudah berakhir.
                     </div>
 
-                    @if(auth()->user()->role == 'peserta' && isset($approvedFilmTitles))
-                    @if($approvedFilmTitles->isNotEmpty())
+                    @if(auth()->user()->role == 'peserta')
                     @php
-                    $quotedTitles = $approvedFilmTitles->map(fn($t) => '"' . $t . '"')->implode(', ');
+                    $approvedTitles  = collect($approvedFilmTitles ?? []);
+                    $rejectedTitles  = collect($rejectedFilmTitles ?? []);
+                    $reviewingTitles = collect($reviewingFilmTitles ?? []);
+                    $quote = fn($titles) => $titles->map(fn($t) => '"' . $t . '"')->implode(', ');
                     @endphp
+
+                    {{-- Lolos Official Selection --}}
+                    @if($approvedTitles->isNotEmpty())
                     <div style="margin-top:10px;background:#e6f9ef;border:1px solid #b7ecd1;border-radius:8px;padding:10px 12px;font-size:13px;color:#1a7a45;line-height:1.5;">
-                        🎉 Selamat! Film Kamu dengan judul {{ $quotedTitles }} Lolos Official Selection FFH 2026.
+                        🎉 Selamat! Film Kamu dengan judul {{ $quote($approvedTitles) }} Lolos Official Selection FFH 2026.
                     </div>
-                    @elseif($totalFilm > 0)
+                    @endif
+
+                    {{-- Tidak lolos kurasi --}}
+                    @if($rejectedTitles->isNotEmpty())
                     <div style="margin-top:10px;background:#f5f0fb;border:1px solid #ddd0f0;border-radius:8px;padding:10px 12px;font-size:13px;color:#6b4faa;line-height:1.5;">
-                        Mohon Maaf, Film Kamu Belum Lolos &ldquo;Official Selection&rdquo;<br>
+                        Mohon Maaf, Film Kamu dengan judul {{ $quote($rejectedTitles) }} Belum Lolos &ldquo;Official Selection&rdquo;<br>
                         Terima kasih telah berpartisipasi dalam Festival Film Horor 2026.
                     </div>
                     @endif
+
+                    {{-- Masih dalam proses penilaian --}}
+                    @if($reviewingTitles->isNotEmpty())
+                    <div style="margin-top:10px;background:#e6f7fb;border:1px solid #bde6f0;border-radius:8px;padding:10px 12px;font-size:13px;color:#0c7c9f;line-height:1.5;">
+                        Film Kamu dengan judul {{ $quote($reviewingTitles) }} masih dalam tahap penilaian.<br>
+                        Mohon menunggu pengumuman hasil kurasi dari panitia FFH 2026.
+                    </div>
                     @endif
 
-                    @if(auth()->user()->role == 'peserta' && isset($approvedFilmTitles) && $approvedFilmTitles->isNotEmpty())
+                    {{-- Status lain (submitted/verified): tidak ada pengumuman --}}
+                    @endif
+
+                    @if(auth()->user()->role == 'peserta' && collect($approvedFilmTitles ?? [])->isNotEmpty())
                     <a href="{{ route('rsvp.timeline') }}"
                         style="margin-top:12px; background:#1a7a45; color:#fff; border-radius:8px; padding:7px 16px; font-size:12px; font-weight:600; text-decoration:none; display:inline-flex; align-items:center; gap:6px; box-shadow:0 2px 6px rgba(26,122,69,0.3);">
                         <i class="fa fa-calendar-check-o"></i> Konfirmasi Kehadiran Di FFH 2026

@@ -26,8 +26,8 @@
     [x] Button trigger pop up timeline -> Timeline table -> Redirect new page with alert program ditutup (RSVP button included) (Segera)
 
 ## Superadmin
-[ ] User Admin
-    [ ] Admin Khusus Program -> Treeview Program
+[x] User Admin
+    [x] Admin Khusus Program -> Treeview Program
 [ ] Superadmin Edited Nilai Juri & Kurator
 
 ## Admin Merchandise

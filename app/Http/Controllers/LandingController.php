@@ -15,6 +15,23 @@ use Illuminate\Http\Request;
 
 class LandingController extends Controller
 {
+    /**
+     * Halaman guide book: menampilkan file PDF panduan (public/landing/pdf/guide.pdf)
+     * sebagai flipbook (efek buka-buku), sekaligus tetap menyediakan tombol
+     * download untuk file PDF aslinya.
+     */
+    public function guideBook()
+    {
+        $path = public_path('landing/pdf/guide.pdf');
+
+        abort_unless(file_exists($path), 404, 'File guide book belum tersedia.');
+
+        return view('landing.guide-book', [
+            'pdfUrl'  => asset('landing/pdf/guide.pdf'),
+            'pdfName' => 'Guide Book.pdf',
+        ]);
+    }
+
     public function home()
     {
         $featuredMerchandises = Merchandise::with('category')

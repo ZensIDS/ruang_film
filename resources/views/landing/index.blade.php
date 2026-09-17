@@ -58,6 +58,11 @@
                                 <i class="fas fa-download text-white group-hover:translate-y-[-2px] transition-transform duration-300"></i>
                                 Unduh Juknis
                             </a>
+                            <a href="{{ route('landing.guide-book') }}"
+                                class="px-8 md:px-10 py-3 md:py-4 rounded-full text-white font-semibold text-base justify-center md:text-lg transition-all duration-300 hover:scale-105 inline-flex items-center gap-3 group bg-white/5 border border-purple-400/40 hover:border-purple-300 hover:bg-white/10">
+                                <i class="fas fa-book-open text-purple-300 group-hover:translate-y-[-2px] transition-transform duration-300"></i>
+                                Guide Book
+                            </a>
                         </div>
                         @if($landingSetting)
                         <p class="text-gray-300 text-xs mt-4"><b>DITUTUP DALAM</b></p>
@@ -71,12 +76,19 @@
                         </div>
                         @endif
                         @else
-                        <button
-                            disabled
-                            class="px-8 md:px-10 py-3 md:py-4 rounded-full text-gray-400 font-semibold text-base md:text-lg inline-flex items-center gap-3 cursor-not-allowed bg-white/5 border border-white/10">
-                            <i class="fas fa-lock text-gray-500"></i>
-                            Submission Ditutup
-                        </button>
+                        <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                            <button
+                                disabled
+                                class="px-8 md:px-10 py-3 md:py-4 rounded-full text-gray-400 font-semibold text-base md:text-lg inline-flex items-center gap-3 justify-center cursor-not-allowed bg-white/5 border border-white/10">
+                                <i class="fas fa-lock text-gray-500"></i>
+                                Submission Ditutup
+                            </button>
+                            <a href="{{ route('landing.guide-book') }}"
+                                class="px-8 md:px-10 py-3 md:py-4 rounded-full text-white font-semibold text-base justify-center md:text-lg transition-all duration-300 hover:scale-105 inline-flex items-center gap-3 group bg-white/5 border border-purple-400/40 hover:border-purple-300 hover:bg-white/10">
+                                <i class="fas fa-book-open text-purple-300 group-hover:translate-y-[-2px] transition-transform duration-300"></i>
+                                Guide Book
+                            </a>
+                        </div>
                         @if($landingSetting && now()->lessThan($landingSetting->open_at))
                         <p class="text-gray-300 text-xs mt-4"><b>DIBUKA DALAM</b></p>
                         <div id="countdown-open" class="flex gap-3 mt-2 justify-center">

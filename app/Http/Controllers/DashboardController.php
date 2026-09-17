@@ -57,6 +57,20 @@ class DashboardController extends Controller
             ->where('curation_status', Film::CURATION_APPROVED)
             ->pluck('name');
 
+        // Judul film yang dinyatakan tidak lolos kurasi.
+        $rejectedFilmTitles = Film::where('user_id', $userId)
+            ->where('curation_status', Film::CURATION_REJECTED)
+            ->pluck('name');
+
+        // Judul film yang masih dalam tahap penilaian (under review / determination).
+        // Bagi peserta, status "determination" ditampilkan sebagai "under review".
+        $reviewingFilmTitles = Film::where('user_id', $userId)
+            ->whereIn('curation_status', [
+                Film::CURATION_UNDER_REVIEW,
+                Film::CURATION_DETERMINATION,
+            ])
+            ->pluck('name');
+
         // Tabel submission sekarang diambil lewat AJAX (server-side DataTables) di data(),
         // supaya halaman dashboard tidak perlu me-load seluruh submission sekaligus.
 
@@ -72,6 +86,8 @@ class DashboardController extends Controller
             'officialSelection',
             'ditolak',
             'approvedFilmTitles',
+            'rejectedFilmTitles',
+            'reviewingFilmTitles',
             'pengumuman',
             'pesan',
             'title'
