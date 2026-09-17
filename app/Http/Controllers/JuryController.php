@@ -13,20 +13,22 @@ class JuryController extends Controller
     public function index()
     {
         return view('jury.index', [
-            'title' => 'Juri',
+            'title'  => 'Juri & Kurator',
             'juries' => Jury::with('category')
+                ->orderByRaw("type = 'kurator'") // juri dulu, baru kurator
                 ->orderBy('category_id')
                 ->ordered()
                 ->get(),
         ]);
     }
 
-    public function create()
+    public function create(Request $request)
     {
         return view('jury.create', [
-            'title' => 'Tambah Juri',
+            'title'      => 'Tambah Juri / Kurator',
+            'type'       => $this->resolveType($request->get('type')),
             'categories' => Category::active()->orderBy('sort_order')->orderBy('name')->get(),
-            'jury' => null,
+            'jury'       => null,
         ]);
     }
 
@@ -35,25 +37,28 @@ class JuryController extends Controller
         $validated = $this->validateRequest($request);
 
         Jury::create([
-            'category_id' => $validated['category_id'],
-            'name' => $validated['name'],
-            'title' => $validated['title'] ?? null,
-            'photo' => $request->hasFile('photo')
+            'type'        => $validated['type'],
+            'category_id' => $validated['type'] === Jury::TYPE_JURI ? $validated['category_id'] : null,
+            'name'        => $validated['name'],
+            'title'       => $validated['title'] ?? null,
+            'photo'       => $request->hasFile('photo')
                 ? $request->file('photo')->store('juries', 'public')
                 : null,
-            'sort_order' => (int) ($validated['sort_order'] ?? 0),
-            'is_active' => $request->boolean('is_active', true),
+            'sort_order'  => (int) ($validated['sort_order'] ?? 0),
+            'is_active'   => $request->boolean('is_active', true),
         ]);
 
         return redirect()->route('juries.index')
-            ->with('toast_success', 'Juri berhasil disimpan.');
+            ->with('toast_success', $validated['type'] === Jury::TYPE_KURATOR
+                ? 'Kurator berhasil disimpan.'
+                : 'Juri berhasil disimpan.');
     }
 
     public function edit(Jury $jury)
     {
         return view('jury.edit', [
-            'title' => 'Edit Juri',
-            'jury' => $jury,
+            'title'      => 'Edit Juri / Kurator',
+            'jury'       => $jury,
             'categories' => Category::active()->orderBy('sort_order')->orderBy('name')->get(),
         ]);
     }
@@ -63,11 +68,12 @@ class JuryController extends Controller
         $validated = $this->validateRequest($request);
 
         $data = [
-            'category_id' => $validated['category_id'],
-            'name' => $validated['name'],
-            'title' => $validated['title'] ?? null,
-            'sort_order' => (int) ($validated['sort_order'] ?? 0),
-            'is_active' => $request->boolean('is_active'),
+            'type'        => $validated['type'],
+            'category_id' => $validated['type'] === Jury::TYPE_JURI ? $validated['category_id'] : null,
+            'name'        => $validated['name'],
+            'title'       => $validated['title'] ?? null,
+            'sort_order'  => (int) ($validated['sort_order'] ?? 0),
+            'is_active'   => $request->boolean('is_active'),
         ];
 
         if ($request->hasFile('photo')) {
@@ -81,7 +87,9 @@ class JuryController extends Controller
         $jury->update($data);
 
         return redirect()->route('juries.index')
-            ->with('toast_success', 'Juri berhasil diperbarui.');
+            ->with('toast_success', $validated['type'] === Jury::TYPE_KURATOR
+                ? 'Kurator berhasil diperbarui.'
+                : 'Juri berhasil diperbarui.');
     }
 
     public function destroy(Jury $jury)
@@ -93,18 +101,26 @@ class JuryController extends Controller
         $jury->delete();
 
         return redirect()->route('juries.index')
-            ->with('toast_success', 'Juri berhasil dihapus.');
+            ->with('toast_success', $jury->type === Jury::TYPE_KURATOR
+                ? 'Kurator berhasil dihapus.'
+                : 'Juri berhasil dihapus.');
+    }
+
+    protected function resolveType($type)
+    {
+        return $type === Jury::TYPE_KURATOR ? Jury::TYPE_KURATOR : Jury::TYPE_JURI;
     }
 
     protected function validateRequest(Request $request)
     {
         return $request->validate([
-            'category_id' => 'required|exists:categories,id',
-            'name' => 'required|string|max:255',
-            'title' => 'nullable|string|max:255',
-            'photo' => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
-            'sort_order' => 'nullable|integer|min:0',
-            'is_active' => 'nullable|boolean',
+            'type'        => 'required|in:juri,kurator',
+            'category_id' => 'required_if:type,juri|nullable|exists:categories,id',
+            'name'        => 'required|string|max:255',
+            'title'       => 'nullable|string|max:255',
+            'photo'       => 'nullable|image|mimes:jpg,jpeg,png|max:5120',
+            'sort_order'  => 'nullable|integer|min:0',
+            'is_active'   => 'nullable|boolean',
         ]);
     }
 }

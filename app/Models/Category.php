@@ -23,7 +23,7 @@ class Category extends Model
 
     public function juries()
     {
-        return $this->hasMany(Jury::class);
+        return $this->hasMany(Jury::class)->where('type', Jury::TYPE_JURI);
     }
 
     public function rubrics()

@@ -1,7 +1,7 @@
 @extends('layouts.master')
 @section('container')
     <section class="content-header">
-        <h1>Data Juri</h1>
+        <h1>Data Juri &amp; Kurator</h1>
     </section>
 
     <section class="content">
@@ -17,6 +17,7 @@
                                 <tr>
                                     <td>No</td>
                                     <td>Foto</td>
+                                    <td>Tipe</td>
                                     <td>Nama</td>
                                     <td>Jabatan</td>
                                     <td>Kategori</td>
@@ -30,9 +31,14 @@
                                     <tr>
                                         <td>{{ $loop->iteration }}</td>
                                         <td><img src="{{ $jury->photo_url }}" alt="{{ $jury->name }}" style="width:48px;height:48px;object-fit:cover;border-radius:8px;"></td>
+                                        <td>
+                                            <span class="label {{ $jury->type === 'kurator' ? 'label-primary' : 'label-info' }}">
+                                                {{ $jury->type === 'kurator' ? 'Kurator' : 'Juri' }}
+                                            </span>
+                                        </td>
                                         <td>{{ $jury->name }}</td>
                                         <td>{{ $jury->title }}</td>
-                                        <td>{{ optional($jury->category)->name }}</td>
+                                        <td>{{ optional($jury->category)->name ?? '-' }}</td>
                                         <td>{{ $jury->sort_order }}</td>
                                         <td>
                                             <span class="label {{ $jury->is_active ? 'label-success' : 'label-default' }}">

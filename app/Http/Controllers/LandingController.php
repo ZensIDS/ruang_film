@@ -138,6 +138,9 @@ class LandingController extends Controller
             ->orderBy('name')
             ->get();
 
+        // Kurator tampil di landing tanpa dikelompokkan per kategori.
+        $curators = Jury::kurator()->active()->ordered()->get();
+
         $faqs = Faq::active()->ordered()->get();
 
         $fallbackLastYearFilms = $this->fallbackLastYearFilms($completedPeriod);
@@ -181,6 +184,7 @@ class LandingController extends Controller
             'competitionCategories'             => $competitionCategories,
             'programCategories'                 => $programCategories,
             'juryCategories'                    => $juryCategories,
+            'curators'                           => $curators,
             'faqs'                              => $faqs,
             'timelineItems'                     => $this->buildTimelineItems($setting),
             'boardMembers'                      => collect(optional($setting)->festival_board ?: [])->filter(function ($member) {

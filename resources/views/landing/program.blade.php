@@ -181,6 +181,64 @@
                         </div>
                     @endforelse
                 </div>
+
+                <div class="mt-12 pt-10 border-t border-purple-500/20">
+                    <h3 class="text-xl md:text-2xl font-bold text-white border-l-4 border-purple-500 pl-4 mb-8">
+                        Kurator
+                    </h3>
+
+                    <div class="flex items-center justify-end gap-4 mb-4">
+                        <div class="hidden md:flex items-center gap-2 flex-shrink-0">
+                            <button type="button" class="curator-slider-prev w-9 h-9 rounded-full glass-card-light flex items-center justify-center border border-purple-500/30 cursor-pointer transition-all duration-300 hover:shadow-[0_0_10px_rgba(109,40,217,0.4)]" aria-label="Sebelumnya">
+                                <i class="fas fa-chevron-left text-purple-400 text-xs"></i>
+                            </button>
+                            <button type="button" class="curator-slider-next w-9 h-9 rounded-full glass-card-light flex items-center justify-center border border-purple-500/30 cursor-pointer transition-all duration-300 hover:shadow-[0_0_10px_rgba(109,40,217,0.4)]" aria-label="Berikutnya">
+                                <i class="fas fa-chevron-right text-purple-400 text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="curator-slider flex gap-5 overflow-x-auto pb-3 snap-x snap-mandatory scroll-smooth" style="scrollbar-width: thin;">
+                        @forelse(($curators ?? collect()) as $curator)
+                        <div class="board-card glass-card-light rounded-2xl overflow-hidden transition-all text-center duration-300 group flex-shrink-0 snap-start w-[80%] sm:w-[45%] md:w-[calc((100%-40px)/3)]">
+                            <div class="overflow-hidden relative">
+                                <img
+                                    src="{{ $curator->photo_url }}"
+                                    alt="{{ $curator->name }}"
+                                    class="w-full h-64 object-cover transition duration-500 group-hover:scale-110" />
+                            </div>
+                            <div class="p-5 space-y-1">
+                                <h3 class="text-base md:text-lg font-bold tracking-tight text-white">
+                                    {{ strtoupper($curator->name) }}
+                                </h3>
+                                @if($curator->title)
+                                <p class="text-purple-300 text-xs md:text-sm uppercase tracking-wider font-semibold">
+                                    {{ $curator->title }}
+                                </p>
+                                @endif
+                            </div>
+                        </div>
+                        @empty
+                            @for($i = 0; $i < 3; $i++)
+                            <div class="jury-mystery-card glass-card-light rounded-2xl overflow-hidden transition-all text-center duration-300 group flex-shrink-0 snap-start w-[80%] sm:w-[45%] md:w-[calc((100%-40px)/3)] relative">
+                                <div class="relative h-64 overflow-hidden bg-gradient-to-br from-purple-950 via-black to-purple-900 flex items-center justify-center">
+                                    <div class="absolute inset-0 opacity-30" style="background-image: radial-gradient(circle at 50% 30%, rgba(168,85,247,0.5), transparent 60%);"></div>
+                                    <i class="fas fa-user-secret text-purple-400/70 text-5xl jury-mystery-pulse"></i>
+                                    <div class="absolute inset-0 shadow-[inset_0_0_40px_rgba(0,0,0,0.6)]"></div>
+                                </div>
+                                <div class="p-5 space-y-1">
+                                    <h3 class="text-base md:text-lg font-bold tracking-tight text-purple-200/90">
+                                        KURATOR
+                                    </h3>
+                                    <p class="text-gray-400 text-xs md:text-sm uppercase tracking-wider font-semibold">
+                                        Cooming Soon
+                                    </p>
+                                </div>
+                            </div>
+                            @endfor
+                        @endforelse
+                    </div>
+                </div>
             </x-program-accordion>
         </div>
     </div>
@@ -276,6 +334,23 @@
                 if (!row) return;
 
                 var slider = row.querySelector('.jury-slider');
+                if (!slider) return;
+
+                var scrollAmount = slider.clientWidth * 0.8;
+                slider.scrollBy({
+                    left: prevBtn ? -scrollAmount : scrollAmount,
+                    behavior: 'smooth',
+                });
+            });
+
+            // Slider tombol prev/next untuk baris kurator
+            document.addEventListener('click', function (e) {
+                var prevBtn = e.target.closest('.curator-slider-prev');
+                var nextBtn = e.target.closest('.curator-slider-next');
+                var btn = prevBtn || nextBtn;
+                if (!btn) return;
+
+                var slider = document.querySelector('.curator-slider');
                 if (!slider) return;
 
                 var scrollAmount = slider.clientWidth * 0.8;

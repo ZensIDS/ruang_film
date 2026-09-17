@@ -36,7 +36,7 @@
                 <a href="{{ route('faqs.index') }}"><i class="fa fa-question-circle"></i> <span>FAQ</span></a>
             </li>
             <li class="{{ request()->routeIs('juries.*') ? 'active' : '' }}">
-                <a href="{{ route('juries.index') }}"><i class="fa fa-gavel"></i> <span>Juri</span></a>
+                <a href="{{ route('juries.index') }}"><i class="fa fa-gavel"></i> <span>Juri &amp; Kurator</span></a>
             </li>
             <li class="treeview {{ request()->routeIs('program-categories.*') || request()->routeIs('admin-programs.*') ? 'active menu-open' : '' }}">
                 <a href="#">
