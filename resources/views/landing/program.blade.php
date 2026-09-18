@@ -97,7 +97,7 @@
 
                 <div class="mb-4">
                     <h3 class="text-xl md:text-2xl font-bold text-white border-l-4 border-purple-500 pl-4 mb-6">
-                        Timeline Kompetisi Film
+                        Timeline Festival Film Horor 2026
                     </h3>
                     @include('layouts.landing.timeline-kompetisi-film', ['timelineItems' => $timelineItems, 'hideHeader' => true])
                 </div>
