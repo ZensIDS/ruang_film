@@ -286,8 +286,8 @@ class DashboardController extends Controller
 
                 $status .= '<div style="margin-top:8px;display:flex;flex-direction:column;gap:6px;align-items:stretch;max-width:190px;">';
 
-                $status .= '<a href="#" target="_blank" style="border:1px solid #1a6fa8;background:#fff;color:#1a6fa8;border-radius:6px;padding:5px 10px;font-size:11px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:5px;white-space:nowrap;">'
-                    . '<i class="fa fa-download"></i> Download Template</a>';
+                $status .= '<a href="' . asset('landing/pdf/template_surat_orisinalitas_ffh_2026.docx') . '" download target="_blank" style="border:1px solid #1a6fa8;background:#fff;color:#1a6fa8;border-radius:6px;padding:5px 10px;font-size:11px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:5px;white-space:nowrap;">'
+        . '<i class="fa fa-download"></i> Download Template</a>';
 
                 if ($hasSurat) {
                     $status .= '<a href="' . e($film->originality_letter_url) . '" target="_blank" style="border:1px solid #1a7a45;background:#e6f9ef;color:#1a7a45;border-radius:6px;padding:5px 10px;font-size:11px;font-weight:600;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:5px;white-space:nowrap;">'

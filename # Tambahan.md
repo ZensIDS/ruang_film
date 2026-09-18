@@ -2,7 +2,7 @@
 
 ## landing Page
 [ ] Home
-    [ ] Add button Guide Book -> redirect newpage with flipbook pdf
+    [ ] Add button Guide Book -> redirect newpage with flipbook pdf -> fixed guideBook 
     [x] Timeline still displaying after submission closed (Segera)
     [x] Display Official selection list
     [x] Set 1row for 4card
@@ -28,7 +28,7 @@
 ## Superadmin
 [x] User Admin
     [x] Admin Khusus Program -> Treeview Program
-[ ] Superadmin Edited Nilai Juri & Kurator
+[x] Superadmin Edited Nilai Juri & Kurator
 
 ## Admin Merchandise
 [ ] Modified download excel -> ditampilkan detail order

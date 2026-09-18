@@ -7,6 +7,7 @@ use App\Models\BankAccount;
 use App\Models\Merchandise;
 use App\Models\Order;
 use App\Services\Shipping\RajaOngkirDeliveryService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -91,6 +92,54 @@ class OrderController extends Controller
             'title' => 'Detail Invoice',
             'order' => $order->load(['user', 'items', 'verifier']),
         ]);
+    }
+
+    public function printDetail(Order $order)
+    {
+        $this->expireOverdueOrders();
+
+        return $this->downloadOrdersPdf(
+            collect([$order->load(['user', 'items'])]),
+            'detail-penjualan-' . $order->invoice_number . '.pdf'
+        );
+    }
+
+    public function printBulk(Request $request)
+    {
+        $this->expireOverdueOrders();
+
+        $ids = array_filter((array) $request->input('ids', []));
+
+        if (empty($ids)) {
+            return redirect()->route('admin.orders.index')->with('warning', 'Pilih minimal satu invoice untuk diunduh.');
+        }
+
+        $orders = Order::with(['user', 'items'])
+            ->whereIn('id', $ids)
+            ->orderBy('created_at')
+            ->get();
+
+        if ($orders->isEmpty()) {
+            return redirect()->route('admin.orders.index')->with('warning', 'Invoice yang dipilih tidak ditemukan.');
+        }
+
+        return $this->downloadOrdersPdf(
+            $orders,
+            'detail-penjualan-massal-' . now()->format('Ymd_His') . '.pdf'
+        );
+    }
+
+    /**
+     * Render kumpulan order jadi satu file PDF (bisa 1 order untuk cetak
+     * satuan, atau banyak sekaligus untuk unduhan massal) lalu langsung
+     * dikirim sebagai download ke browser.
+     */
+    protected function downloadOrdersPdf($orders, string $fileName)
+    {
+        $pdf = Pdf::loadView('order.print', ['orders' => $orders])
+            ->setPaper('a4', 'portrait');
+
+        return $pdf->download($fileName);
     }
 
     public function exportExcel(Request $request)
@@ -299,7 +348,7 @@ class OrderController extends Controller
         $startDate = $startDateInput ? Carbon::parse($startDateInput)->startOfDay() : null;
         $endDate   = $endDateInput ? Carbon::parse($endDateInput)->endOfDay() : null;
 
-        $query = Order::with('user')->latest();
+        $query = Order::with(['user', 'items'])->latest();
 
         if ($startDate && $endDate) {
             $query->whereBetween('created_at', [$startDate, $endDate]);

@@ -118,11 +118,19 @@
                             class="btn btn-success">
                                 <i class="fa fa-file-excel-o"></i> Export Excel
                         </a>
+                        <button type="button" id="btn-print-selected" class="btn btn-default" disabled
+                            style="margin-left: 4px;">
+                            <i class="fa fa-file-pdf-o"></i> Download PDF Terpilih (<span id="selected-count">0</span>)
+                        </button>
                     </form>
                 </div>
             </div>
         </div>
     </div>
+
+    {{-- Form terpisah khusus untuk kirim id order terpilih ke endpoint download
+         PDF massal (submit GET biasa, browser langsung memicu unduhan file). --}}
+    <form id="form-print-selected" action="{{ route('admin.orders.print-bulk') }}" method="GET"></form>
 
     <div class="row">
         <div class="col-xs-12">
@@ -131,6 +139,7 @@
                     <table id="example1" class="table table-bordered table-striped">
                         <thead>
                             <tr>
+                                <th style="width:30px;"><input type="checkbox" id="checkbox-all"></th>
                                 <th>No</th>
                                 <th>Invoice</th>
                                 <th>Pembeli</th>
@@ -143,6 +152,7 @@
                         <tbody>
                             @foreach($orders as $order)
                             <tr>
+                                <td><input type="checkbox" class="checkbox-order" value="{{ $order->id }}"></td>
                                 <td>{{ $loop->iteration }}</td>
                                 <td>{{ $order->invoice_number }}</td>
                                 <td>{{ $order->user->name ?? '-' }}</td>
@@ -155,6 +165,9 @@
                                 <td>{{ optional($order->payment_due_at)->translatedFormat('d M Y H:i') ?? '-' }}</td>
                                 <td>
                                     <a href="{{ route('admin.orders.show', $order) }}" class="btn btn-info btn-xs">Detail</a>
+                                    <a href="{{ route('admin.orders.print', $order) }}" class="btn btn-default btn-xs">
+                                        <i class="fa fa-file-pdf-o"></i> PDF
+                                    </a>
                                 </td>
                             </tr>
                             @endforeach
@@ -276,6 +289,67 @@
             $endDateInput.val('');
         });
     }
+})();
+</script>
+
+<script>
+(function () {
+    var checkboxAll = document.getElementById('checkbox-all');
+    var btnPrintSelected = document.getElementById('btn-print-selected');
+    var selectedCountEl = document.getElementById('selected-count');
+    var formPrintSelected = document.getElementById('form-print-selected');
+
+    function getOrderCheckboxes() {
+        return Array.prototype.slice.call(document.querySelectorAll('.checkbox-order'));
+    }
+
+    function refreshSelectedState() {
+        var checked = getOrderCheckboxes().filter(function (cb) { return cb.checked; });
+        selectedCountEl.textContent = checked.length;
+        btnPrintSelected.disabled = checked.length === 0;
+    }
+
+    if (checkboxAll) {
+        checkboxAll.addEventListener('change', function () {
+            getOrderCheckboxes().forEach(function (cb) { cb.checked = checkboxAll.checked; });
+            refreshSelectedState();
+        });
+    }
+
+    getOrderCheckboxes().forEach(function (cb) {
+        cb.addEventListener('change', function () {
+            if (!cb.checked && checkboxAll) {
+                checkboxAll.checked = false;
+            }
+            refreshSelectedState();
+        });
+    });
+
+    if (btnPrintSelected) {
+        btnPrintSelected.addEventListener('click', function () {
+            var checked = getOrderCheckboxes().filter(function (cb) { return cb.checked; });
+
+            if (!checked.length) {
+                return;
+            }
+
+            // Bersihkan hidden input lama, lalu isi ulang sesuai id yang dicentang
+            // sekarang, baru submit form ke tab baru (halaman cetak massal).
+            formPrintSelected.innerHTML = '';
+
+            checked.forEach(function (cb) {
+                var input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'ids[]';
+                input.value = cb.value;
+                formPrintSelected.appendChild(input);
+            });
+
+            formPrintSelected.submit();
+        });
+    }
+
+    refreshSelectedState();
 })();
 </script>
 @endsection

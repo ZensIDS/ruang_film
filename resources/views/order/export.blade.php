@@ -44,15 +44,15 @@
     </tr>
     <tr>
         <td>Pendapatan Kotor</td>
-        <td>{{ number_format($stats['gross_revenue'], 0, ',', '.') }}</td>
+        <td>{{ (float) $stats['gross_revenue'] }}</td>
     </tr>
     <tr>
         <td>Total Ongkir</td>
-        <td>{{ number_format($stats['shipping_total'], 0, ',', '.') }}</td>
+        <td>{{ (float) $stats['shipping_total'] }}</td>
     </tr>
     <tr>
         <td>Pendapatan Bersih</td>
-        <td>{{ number_format($stats['net_revenue'], 0, ',', '.') }}</td>
+        <td>{{ (float) $stats['net_revenue'] }}</td>
     </tr>
     <tr><td></td><td></td></tr>
     <tr><td></td><td></td></tr>
@@ -65,15 +65,23 @@
         <th>Total</th>
         <th>Status</th>
         <th>Batas Bayar</th>
+        <th>Detail Barang</th>
     </tr>
     @foreach($orders as $order)
     <tr>
         <td>{{ $loop->iteration }}</td>
         <td>{{ $order->invoice_number }}</td>
         <td>{{ $order->user->name ?? '-' }}</td>
-        <td>{{ number_format($order->total, 0, ',', '.') }}</td>
+        <td>{{ (float) $order->total }}</td>
         <td>{{ strtoupper(str_replace('_', ' ', $order->status)) }}</td>
         <td>{{ optional($order->payment_due_at)->translatedFormat('d M Y H:i') ?? '-' }}</td>
+        <td>
+            @forelse($order->items as $item)
+                {{ $item->merchandise_name }} x{{ $item->quantity }} (Rp{{ number_format($item->unit_price, 0, ',', '.') }}){{ !$loop->last ? '; ' : '' }}
+            @empty
+                -
+            @endforelse
+        </td>
     </tr>
     @endforeach
 </table>

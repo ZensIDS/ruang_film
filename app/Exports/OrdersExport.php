@@ -51,12 +51,12 @@ class OrdersExport implements FromView, ShouldAutoSize, WithEvents
             AfterSheet::class => function (AfterSheet $event) {
                 $sheet = $event->sheet->getDelegate();
                 $lastDataRow = self::ROW_TABLE_START + max($this->orders->count() - 1, 0);
-                $lastCol = 'F';
+                $lastCol = 'G';
 
                 // ===== Title =====
-                $sheet->mergeCells('A1:F1');
+                $sheet->mergeCells('A1:' . $lastCol . '1');
                 $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(16)->getColor()->setRGB('FFFFFF');
-                $sheet->getStyle('A1:F1')->getFill()
+                $sheet->getStyle('A1:' . $lastCol . '1')->getFill()
                     ->setFillType(Fill::FILL_SOLID)
                     ->getStartColor()->setRGB('2C3E50');
                 $sheet->getStyle('A1')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
@@ -107,7 +107,7 @@ class OrdersExport implements FromView, ShouldAutoSize, WithEvents
                             'allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => 'BDC3C7']],
                         ],
                     ]);
-                    $sheet->getStyle("B{$row}")->getNumberFormat()->setFormatCode('#,##0');
+                    $sheet->getStyle("B{$row}")->getNumberFormat()->setFormatCode('"Rp" #,##0');
                     $sheet->getStyle("B{$row}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
                 }
                 // Pendapatan bersih ditonjolkan
@@ -149,7 +149,7 @@ class OrdersExport implements FromView, ShouldAutoSize, WithEvents
                     }
                     // Format kolom Total (D) sebagai angka
                     $sheet->getStyle("D" . self::ROW_TABLE_START . ":D{$lastDataRow}")
-                        ->getNumberFormat()->setFormatCode('#,##0');
+                        ->getNumberFormat()->setFormatCode('"Rp" #,##0');
                     $sheet->getStyle("D" . self::ROW_TABLE_START . ":D{$lastDataRow}")
                         ->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
                     // Kolom No (A) center
@@ -159,6 +159,10 @@ class OrdersExport implements FromView, ShouldAutoSize, WithEvents
                     $sheet->getStyle("E" . self::ROW_TABLE_START . ":E{$lastDataRow}")
                         ->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
                     $sheet->getStyle("E" . self::ROW_TABLE_START . ":E{$lastDataRow}")->getFont()->setBold(true);
+                    // Kolom Detail Barang (G) dibungkus (wrap) biar daftar barang yang
+                    // panjang tetap kebaca dalam satu sel, bukan terpotong.
+                    $sheet->getStyle("G" . self::ROW_TABLE_START . ":G{$lastDataRow}")
+                        ->getAlignment()->setWrapText(true)->setVertical(Alignment::VERTICAL_TOP);
                 }
 
                 // Freeze pane di bawah header tabel biar saat scroll header tetap kelihatan
@@ -168,6 +172,7 @@ class OrdersExport implements FromView, ShouldAutoSize, WithEvents
                 $sheet->getColumnDimension('B')->setWidth(28);
                 $sheet->getColumnDimension('C')->setWidth(20);
                 $sheet->getColumnDimension('F')->setWidth(20);
+                $sheet->getColumnDimension('G')->setWidth(45);
             },
         ];
     }

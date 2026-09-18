@@ -7,6 +7,7 @@ use App\Models\Film;
 use App\Models\ReviewRubric;
 use App\Models\SubmissionReview;
 use App\Models\SubmissionSetting;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -264,7 +265,7 @@ class SubmissionReviewController extends Controller
         return back()->with('success', 'Status film berhasil diperbarui.');
     }
 
-    public function score(Film $film, $stage)
+    public function score(Request $request, Film $film, $stage)
     {
         $this->syncClosedSubmissionStatuses();
 
@@ -281,19 +282,47 @@ class SubmissionReviewController extends Controller
             return redirect()->route('review.index')->with('warning', 'Rubrik penilaian kategori ini belum tersedia.');
         }
 
-        $review = SubmissionReview::with('scores')
+        $isAdmin = auth()->user()->hasRole(['admin', 'adminsub']);
+
+        // Semua penilai (reviewer) yang sudah pernah menilai film ini pada stage
+        // ini — dipakai superadmin untuk memilih/berpindah penilaian siapa yang
+        // mau diedit.
+        $stageReviewers = $isAdmin
+            ? SubmissionReview::with('reviewer')
+                ->where('film_id', $film->id)
+                ->where('stage', $stage)
+                ->orderBy('id')
+                ->get()
+                ->pluck('reviewer')
+                ->filter()
+                ->unique('id')
+                ->values()
+            : collect();
+
+        $reviewerId = $this->resolveReviewerId($request, $film, $stage, $isAdmin, $stageReviewers);
+
+        if ($isAdmin && ! $reviewerId) {
+            return redirect()
+                ->route('film.show', $film)
+                ->with('warning', 'Belum ada penilaian ' . ($stage === ReviewRubric::STAGE_CURATION ? 'kurator' : 'juri') . ' untuk film ini yang bisa diedit.');
+        }
+
+        $review = SubmissionReview::with(['scores', 'reviewer'])
             ->where('film_id', $film->id)
-            ->where('reviewer_id', auth()->id())
+            ->where('reviewer_id', $reviewerId)
             ->where('stage', $stage)
             ->first();
 
         return view('review.score', [
-            'title'      => 'Form Penilaian',
-            'film'       => $film->loadMissing(['category', 'submissionSetting']),
-            'stage'      => $stage,
-            'stageLabel' => ReviewRubric::stageLabels()[$stage] ?? ucfirst($stage),
-            'rubric'     => $rubric,
-            'review'     => $review,
+            'title'          => 'Form Penilaian',
+            'film'           => $film->loadMissing(['category', 'submissionSetting']),
+            'stage'          => $stage,
+            'stageLabel'     => ReviewRubric::stageLabels()[$stage] ?? ucfirst($stage),
+            'rubric'         => $rubric,
+            'review'         => $review,
+            'isAdminEditing' => $isAdmin,
+            'reviewerId'     => $reviewerId,
+            'stageReviewers' => $stageReviewers,
         ]);
     }
 
@@ -312,6 +341,18 @@ class SubmissionReviewController extends Controller
 
         if (! $rubric) {
             return back()->with('warning', 'Rubrik penilaian kategori ini belum tersedia.');
+        }
+
+        $isAdmin = auth()->user()->hasRole(['admin', 'adminsub']);
+
+        if ($isAdmin) {
+            $reviewerId = $this->resolveReviewerIdForAdminStore($request, $stage);
+
+            if (! $reviewerId) {
+                return back()->with('warning', 'Reviewer tujuan penilaian tidak valid.');
+            }
+        } else {
+            $reviewerId = auth()->id();
         }
 
         $items = $rubric->groups->flatMap(function ($group) {
@@ -348,11 +389,11 @@ class SubmissionReviewController extends Controller
         ]);
         $totalScore = 0;
 
-        DB::transaction(function () use ($film, $stage, $rubric, $items, $validated, &$totalScore) {
+        DB::transaction(function () use ($film, $stage, $rubric, $items, $validated, $reviewerId, &$totalScore) {
             $review = SubmissionReview::updateOrCreate(
                 [
                     'film_id'     => $film->id,
-                    'reviewer_id' => auth()->id(),
+                    'reviewer_id' => $reviewerId,
                     'stage'       => $stage,
                 ],
                 [
@@ -382,6 +423,16 @@ class SubmissionReviewController extends Controller
             $review->update(['total_score' => $totalScore]);
         });
 
+        // Superadmin membuka form ini dari halaman Detail Film (Rekap Penilaian),
+        // jadi setelah simpan langsung dikembalikan ke sana lagi — tidak perlu
+        // bolak-balik ke daftar Review Submission. Kurator/juri tetap seperti
+        // semula, kembali ke daftar Review Submission.
+        if ($isAdmin) {
+            return redirect()
+                ->route('film.show', $film)
+                ->with('success', 'Penilaian berhasil disimpan. Total nilai: ' . number_format($totalScore, 2));
+        }
+
         return redirect()
             ->route('review.index', [
                 'submission_setting_id' => $film->submission_setting_id,
@@ -389,6 +440,58 @@ class SubmissionReviewController extends Controller
                 'stage'                 => $stage,
             ])
             ->with('success', 'Penilaian berhasil disimpan. Total nilai: ' . number_format($totalScore, 2));
+    }
+
+    /**
+     * Tentukan reviewer_id yang penilaiannya sedang dibuka pada form GET.
+     * - Kurator/juri: selalu penilaian miliknya sendiri.
+     * - Superadmin: dari query string ?reviewer_id=..., divalidasi harus
+     *   reviewer yang memang sudah punya penilaian untuk film+stage ini.
+     *   Kalau tidak dikirim/tidak valid, jatuh ke reviewer pertama yang ada.
+     */
+    protected function resolveReviewerId(Request $request, Film $film, $stage, bool $isAdmin, $stageReviewers)
+    {
+        if (! $isAdmin) {
+            return auth()->id();
+        }
+
+        $requested = $request->input('reviewer_id');
+
+        if ($requested && $stageReviewers->contains('id', (int) $requested)) {
+            return (int) $requested;
+        }
+
+        return optional($stageReviewers->first())->id;
+    }
+
+    /**
+     * Tentukan reviewer_id tujuan saat superadmin menyimpan hasil edit.
+     * Wajib dikirim lewat field tersembunyi `reviewer_id` di form, dan harus
+     * mengarah ke akun yang benar-benar berperan kurator (stage kurasi) atau
+     * juri (stage penjurian) — supaya superadmin tidak bisa menulis skor atas
+     * nama akun dengan role yang salah.
+     */
+    protected function resolveReviewerIdForAdminStore(Request $request, $stage)
+    {
+        $reviewerId = (int) $request->input('reviewer_id');
+
+        if (! $reviewerId) {
+            return null;
+        }
+
+        $reviewer = User::find($reviewerId);
+
+        if (! $reviewer) {
+            return null;
+        }
+
+        $expectedRole = $stage === ReviewRubric::STAGE_CURATION ? 'kurator' : 'juri';
+
+        if (! $reviewer->hasRole($expectedRole)) {
+            return null;
+        }
+
+        return $reviewer->id;
     }
 
     public function updateWinnerRank(Request $request, Film $film)
@@ -569,16 +672,30 @@ class SubmissionReviewController extends Controller
 
     protected function authorizeScoringRole($stage)
     {
-        if ($stage === ReviewRubric::STAGE_CURATION) {
-            abort_unless(auth()->user()->hasRole('kurator'), 403);
+        $user = auth()->user();
+
+        // Superadmin boleh membuka & mengedit form penilaian kurasi maupun
+        // penjurian kapan saja, tanpa terikat role kurator/juri.
+        if ($user->hasRole(['admin', 'adminsub'])) {
             return;
         }
 
-        abort_unless(auth()->user()->hasRole('juri'), 403);
+        if ($stage === ReviewRubric::STAGE_CURATION) {
+            abort_unless($user->hasRole('kurator'), 403);
+            return;
+        }
+
+        abort_unless($user->hasRole('juri'), 403);
     }
 
     protected function scoreBlockReason(Film $film, $stage)
     {
+        // Superadmin melakukan penyesuaian nilai, bukan penilaian awal — jadi
+        // tidak dibatasi oleh status kurasi film seperti kurator/juri biasa.
+        if (auth()->user()->hasRole(['admin', 'adminsub'])) {
+            return null;
+        }
+
         if (
             $stage === ReviewRubric::STAGE_CURATION
             && ! in_array($film->curation_status, Film::curatorReviewableStatuses(), true)

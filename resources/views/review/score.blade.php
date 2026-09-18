@@ -1,14 +1,46 @@
 @extends('layouts.master')
 @section('container')
 @php
+    $isAdminEditing = $isAdminEditing ?? false;
+    $stageReviewers = $stageReviewers ?? collect();
     $existingScores = optional($review)->scores ? $review->scores->keyBy('review_rubric_item_id') : collect();
 @endphp
 <section class="content-header">
-    <h1>{{ $stageLabel }}: {{ $film->name }}</h1>
+    <h1>
+        {{ $stageLabel }}: {{ $film->name }}
+        @if($isAdminEditing)
+        <small>— sebagai {{ optional($review)->reviewer->name ?? 'Reviewer' }}</small>
+        @endif
+    </h1>
 </section>
 <section class="content">
     <div class="row">
         <div class="col-md-12">
+
+            @if($isAdminEditing)
+            <div class="box box-solid box-default">
+                <div class="box-body">
+                    <form method="GET" action="{{ route('review.score', [$film, $stage]) }}" class="form-inline">
+                        <label style="margin-right:8px;">Edit penilaian milik:</label>
+                        <div class="input-group input-group-sm" style="min-width:260px;">
+                            <select name="reviewer_id" class="form-control" onchange="this.form.submit()">
+                                @forelse($stageReviewers as $reviewerOption)
+                                <option value="{{ $reviewerOption->id }}" {{ (int) $reviewerId === (int) $reviewerOption->id ? 'selected' : '' }}>
+                                    {{ $reviewerOption->name }}
+                                </option>
+                                @empty
+                                <option value="">Belum ada reviewer</option>
+                                @endforelse
+                            </select>
+                        </div>
+                    </form>
+                    <p class="text-muted" style="margin-top:8px; margin-bottom:0;">
+                        Sebagai superadmin, perubahan di bawah ini akan menimpa penilaian yang sudah dikirim reviewer terkait.
+                    </p>
+                </div>
+            </div>
+            @endif
+
             <div class="box box-primary">
                 <div class="box-header with-border">
                     <h3 class="box-title">{{ $film->category->name ?? '-' }} / {{ $film->submissionSetting->name ?? '-' }}</h3>
@@ -16,6 +48,9 @@
                 <form method="POST" action="{{ route('review.score.update', [$film, $stage]) }}">
                     @csrf
                     @method('PATCH')
+                    @if($isAdminEditing)
+                    <input type="hidden" name="reviewer_id" value="{{ $reviewerId }}">
+                    @endif
                     <div class="box-body">
                         @if ($errors->any())
                         <div class="alert alert-danger">
@@ -83,7 +118,7 @@
                         </div>
                     </div>
                     <div class="box-footer">
-                        <a href="{{ route('review.index', ['submission_setting_id' => $film->submission_setting_id, 'category_id' => $film->category_id, 'stage' => $stage]) }}" class="btn btn-default">Kembali</a>
+                        <a href="{{ $isAdminEditing ? route('film.show', $film) : route('review.index', ['submission_setting_id' => $film->submission_setting_id, 'category_id' => $film->category_id, 'stage' => $stage]) }}" class="btn btn-default">Kembali</a>
                         <button type="submit" class="btn btn-primary">Simpan Penilaian</button>
                     </div>
                 </form>

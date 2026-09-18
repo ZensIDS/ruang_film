@@ -117,6 +117,7 @@
                             {{-- Admin lihat nama reviewer, selain itu tidak --}}
                             @if($isAdmin)
                                 <strong>{{ $review->reviewer->name ?? 'Kurator' }} : {{ number_format((float) $review->total_score, 2) }}</strong>
+                                <a href="{{ route('review.score', [$film, \App\Models\ReviewRubric::STAGE_CURATION]) }}?reviewer_id={{ $review->reviewer_id }}" class="btn btn-default btn-xs" style="margin-left:4px;">Edit</a>
                             @else
                                 <strong>Total Nilai : </strong><strong>{{ number_format((float) $review->total_score, 2) }}<br></strong><span class="label label-success">{{ $currentCount }} Reviewer</span>
                             @endif
@@ -133,6 +134,7 @@
                         <div style="margin-bottom:4px;">
                             @if($isAdmin)
                                 <small>{{ $review->reviewer->name ?? 'Juri' }}: {{ number_format((float) $review->total_score, 2) }}</small>
+                                <a href="{{ route('review.score', [$film, \App\Models\ReviewRubric::STAGE_JURY]) }}?reviewer_id={{ $review->reviewer_id }}" class="btn btn-default btn-xs" style="margin-left:4px;">Edit</a>
                             @else
                                 <small>{{ number_format((float) $review->total_score, 2) }}</small>
                             @endif

@@ -48,7 +48,7 @@
                     <i class="fas fa-arrow-left"></i>
                     {{ auth()->check() ? 'Kembali ke Dashboard' : 'Kembali ke Beranda' }}
                 </a>
-                <a href="#" target="_blank"
+                <a href="https://forms.gle/dqeRPkV9bpwuVnS1A" target="_blank"
                     class="inline-flex items-center gap-2 bg-gradient-to-r from-green-600 to-green-500 hover:from-green-500 hover:to-green-400 text-white font-semibold px-6 py-3 rounded-full transition shadow-lg shadow-green-900/40">
                     <i class="fas fa-calendar-check"></i>
                     Konfirmasi Kehadiran

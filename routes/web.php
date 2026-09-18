@@ -172,10 +172,10 @@ Route::middleware('auth')->group(function () {
         ->middleware('role:admin,adminsub')
         ->name('review.status');
     Route::get('/review/submissions/{film}/{stage}/score', [SubmissionReviewController::class, 'score'])
-        ->middleware('role:kurator,juri')
+        ->middleware('role:admin,adminsub,kurator,juri')
         ->name('review.score');
     Route::patch('/review/submissions/{film}/{stage}/score', [SubmissionReviewController::class, 'storeScore'])
-        ->middleware('role:kurator,juri')
+        ->middleware('role:admin,adminsub,kurator,juri')
         ->name('review.score.update');
     Route::patch('/review/submissions/{film}/winner-rank', [SubmissionReviewController::class, 'updateWinnerRank'])
         ->middleware('role:admin,adminsub')
@@ -203,10 +203,12 @@ Route::middleware(['auth', 'role:admin,adminmerch,adminprog'])->group(function (
 Route::middleware(['auth', 'role:admin,adminmerch'])->group(function () {
     Route::get('/admin/orders', [OrderController::class, 'adminIndex'])->name('admin.orders.index');
     Route::get('admin/orders/export', [OrderController::class, 'exportExcel'])->name('admin.orders.export');
+    Route::get('/admin/orders/print', [OrderController::class, 'printBulk'])->name('admin.orders.print-bulk');
     Route::get('/admin/orders/{order}', [OrderController::class, 'adminShow'])->name('admin.orders.show');
     Route::post('/admin/orders/{order}/verify', [OrderController::class, 'verify'])->name('admin.orders.verify');
     Route::post('/admin/orders/{order}/reject', [OrderController::class, 'reject'])->name('admin.orders.reject');
     Route::patch('/admin/orders/{order}/airway-bill', [OrderController::class, 'updateAirwayBill'])->name('admin.orders.airway-bill.update');
     Route::post('/admin/orders/{order}/shipment', [OrderController::class, 'createShipment'])->name('admin.orders.shipment.store');
     Route::post('/admin/orders/{order}/shipment/sync', [OrderController::class, 'syncShipment'])->name('admin.orders.shipment.sync');
+    Route::get('/admin/orders/{order}/print', [OrderController::class, 'printDetail'])->name('admin.orders.print');
 });

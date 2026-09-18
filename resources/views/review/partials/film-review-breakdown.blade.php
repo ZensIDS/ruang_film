@@ -47,6 +47,9 @@
                         @endforeach
                         <th>Total</th>
                         <th>Catatan</th>
+                        @if($isReviewAdmin)
+                        <th>Aksi</th>
+                        @endif
                     </tr>
                 </thead>
                 <tbody>
@@ -71,6 +74,11 @@
                         @endforeach
                         <td><strong>{{ number_format((float) $review->total_score, 2) }}</strong></td>
                         <td>{{ $review->note ?: '-' }}</td>
+                        @if($isReviewAdmin)
+                        <td>
+                            <a href="{{ route('review.score', [$film, $reviewStage]) }}?reviewer_id={{ $review->reviewer_id }}" class="btn btn-default btn-xs">Edit</a>
+                        </td>
+                        @endif
                     </tr>
                     @endforeach
                 </tbody>
