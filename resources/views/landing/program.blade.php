@@ -297,6 +297,43 @@
                 toggle.setAttribute('aria-expanded', 'true');
                 setIconState(toggle, true);
                 setLabelState(toggle, true);
+
+                // FIX: konten di dalam panel ini (mis. section "Kompetisi Film")
+                // pakai class `.fade-up` yang animasi munculnya dikontrol oleh
+                // IntersectionObserver di landing/js/vanila1.js. Karena panel ini
+                // defaultnya disembunyikan lewat max-height:0 + overflow:hidden,
+                // observer itu kadang salah membaca posisi elemen saat pertama
+                // kali di-load (elemen masih "collapsed"), jadi class yang
+                // membuat opacity jadi 1 tidak pernah ke-trigger sampai halaman
+                // di-refresh ulang.
+                //
+                // Paksa semua elemen .fade-up di dalam panel ini langsung
+                // tampil begitu accordion dibuka, tanpa bergantung ke observer
+                // eksternal tsb. Pakai inline style supaya menang dari CSS
+                // `.fade-up { opacity: 0; ... }` apa pun nama class toggle-nya.
+                panel.querySelectorAll('.fade-up').forEach(function (el) {
+                    el.style.opacity = '1';
+                    el.style.transform = 'none';
+                });
+
+                // Jaga-jaga: beberapa versi observer berbasis event scroll/resize,
+                // bukan murni IntersectionObserver -- trigger ulang biar konsisten.
+                window.dispatchEvent(new Event('resize'));
+                window.dispatchEvent(new Event('scroll'));
+
+                // FIX tambahan: kalau ada gambar (foto juri/kurator dll) di
+                // dalam panel yang belum selesai load saat pertama dibuka,
+                // scrollHeight yang sudah dihitung di atas bisa lebih pendek
+                // dari tinggi final -- bikin bagian bawah konten kepotong.
+                // Hitung ulang max-height setelah gambar-gambar itu selesai load.
+                panel.querySelectorAll('img').forEach(function (img) {
+                    if (img.complete) return;
+                    img.addEventListener('load', function () {
+                        if (item.classList.contains('is-open')) {
+                            panel.style.maxHeight = panel.scrollHeight + 'px';
+                        }
+                    }, { once: true });
+                });
             }
 
             document.addEventListener('click', function (e) {

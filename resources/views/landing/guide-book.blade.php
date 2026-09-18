@@ -64,8 +64,13 @@
 
         #flipbook .page {
             background-color: #fff;
-            background-size: cover;
-            background-position: center;
+            overflow: hidden;
+        }
+        #flipbook .page img {
+            width: 100%;
+            height: 100%;
+            display: block;
+            object-fit: cover;
         }
 
         .nav-btn {
@@ -175,8 +180,13 @@
             const pdf = await pdfjsLib.getDocument(url).promise;
             const images = [];
 
-            // Scale 3.0 sudah sangat tajam dan tidak membuat memori browser overload
-            const renderScale = 3.0; 
+            // Skala dasar 3.0 sudah tajam untuk layar normal (DPR 1), tapi di
+            // layar retina/HP (DPR 2-3) gambar itu ikut di-stretch lagi oleh
+            // browser sehingga jadi blur. Kalikan dengan devicePixelRatio biar
+            // resolusi gambar tetap tajam di layar high-DPI, dibatasi maksimal
+            // 2x supaya ukuran canvas & memori browser tidak meledak.
+            const dpr = Math.min(window.devicePixelRatio || 1, 2);
+            const renderScale = 3.0 * dpr;
 
             for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber++) {
                 loadingText.textContent = `Memuat halaman ${pageNumber} dari ${pdf.numPages}...`;
@@ -213,6 +223,33 @@
                 const bookHeight = Math.min(availableHeight, 720); 
                 const singlePageWidth = Math.round(bookHeight * ratio);
 
+                // PENTING: loadFromImages() StPageFlip menggambar tiap halaman ke
+                // <canvas> INTERNAL seukuran width/height config di atas (dalam CSS
+                // px, tidak dikali device pixel ratio) -- jadi walau gambar sumber
+                // kita sudah tajam, hasil akhirnya tetap digambar ulang ke canvas
+                // beresolusi rendah lalu di-stretch browser => blur, terlepas dari
+                // seberapa tinggi resolusi gambar sumbernya.
+                //
+                // Solusinya: pakai loadFromHtml() dengan elemen <img> asli. Mode
+                // HTML ini membiarkan browser sendiri yang melakukan scaling
+                // gambar (native image scaling), yang jauh lebih tajam dibanding
+                // digambar ulang lewat canvas internal library.
+                images.forEach((src, index) => {
+                    const pageEl = document.createElement('div');
+                    pageEl.className = 'page';
+                    if (index === 0 || index === images.length - 1) {
+                        pageEl.dataset.density = 'hard';
+                    }
+
+                    const img = document.createElement('img');
+                    img.src = src;
+                    img.alt = `Halaman ${index + 1}`;
+                    img.draggable = false;
+
+                    pageEl.appendChild(img);
+                    flipbookEl.appendChild(pageEl);
+                });
+
                 // Inisialisasi PageFlip
                 const pageFlip = new St.PageFlip(flipbookEl, {
                     width: singlePageWidth,
@@ -223,8 +260,9 @@
                     mobileScrollSupport: false,
                 });
 
-                // Muat semua gambar ke flipbook
-                pageFlip.loadFromImages(images);
+                // Muat halaman dari elemen HTML yang baru dibuat (bukan
+                // loadFromImages) supaya browser yang menangani scaling gambar.
+                pageFlip.loadFromHtml(flipbookEl.querySelectorAll('.page'));
 
                 function updateIndicator() {
                     pageIndicator.textContent = `${pageFlip.getCurrentPageIndex() + 1} / ${images.length}`;

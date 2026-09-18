@@ -64,6 +64,11 @@
                                 <i class="fas fa-book-open text-purple-300 group-hover:translate-y-[-2px] transition-transform duration-300"></i>
                                 Guide Book (Coming Soon)
                             </a>
+                            {{-- <a href="{{ route('landing.guide-book') }}"
+                                class="px-8 md:px-10 py-3 md:py-4 rounded-full text-white font-semibold text-base justify-center md:text-lg transition-all duration-300 hover:scale-105 inline-flex items-center gap-3 group bg-white/5 border border-purple-400/40 hover:border-purple-300 hover:bg-white/10">
+                                <i class="fas fa-book-open text-purple-300 group-hover:translate-y-[-2px] transition-transform duration-300"></i>
+                                Guide Book
+                            </a> --}}
                         </div>
                         @if($landingSetting)
                         <p class="text-gray-300 text-xs mt-4"><b>DITUTUP DALAM</b></p>
@@ -85,6 +90,11 @@
                                 Submission Ditutup
                             </button>
                             {{-- <a href="{{ route('landing.guide-book') }}" --}}
+                            {{-- <a href="{{ route('landing.guide-book') }}"
+                                class="px-8 md:px-10 py-3 md:py-4 rounded-full text-white font-semibold text-base justify-center md:text-lg transition-all duration-300 hover:scale-105 inline-flex items-center gap-3 group bg-white/5 border border-purple-400/40 hover:border-purple-300 hover:bg-white/10">
+                                <i class="fas fa-book-open text-purple-300 group-hover:translate-y-[-2px] transition-transform duration-300"></i>
+                                Guide Book
+                            </a> --}}
                             <a href="#"
                                 class="px-8 md:px-10 py-3 md:py-4 rounded-full text-white font-semibold text-base justify-center md:text-lg transition-all duration-300 hover:scale-105 inline-flex items-center gap-3 group bg-white/5 border border-purple-400/40 hover:border-purple-300 hover:bg-white/10">
                                 <i class="fas fa-book-open text-purple-300 group-hover:translate-y-[-2px] transition-transform duration-300"></i>

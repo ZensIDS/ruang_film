@@ -9,10 +9,10 @@
 <section class="max-w-7xl mx-auto px-6 md:px-10 py-24 md:py-28 timeline-section">
     <div class="fade-up">
         <p class="text-purple-400 text-sm md:text-base uppercase tracking-wider font-semibold mb-2">
-            COMPETITION JOURNEY
+            FESTIVAL JOURNEY
         </p>
         <h2 class="text-3xl md:text-5xl font-bold text-left border-l-8 border-purple-500 pl-6 tracking-tight">
-            Timeline Kompetisi Film
+            Timeline Festival Film Horor 2026
         </h2>
     </div>
 @endunless

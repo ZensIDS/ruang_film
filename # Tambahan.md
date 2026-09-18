@@ -31,8 +31,8 @@
 [x] Superadmin Edited Nilai Juri & Kurator
 
 ## Admin Merchandise
-[ ] Modified download excel -> ditampilkan detail order
-[ ] Add download button on order datatable -> all detail of order -> enabled download massal
+[x] Modified download excel -> ditampilkan detail order
+[x] Add download button on order datatable -> all detail of order -> enabled download massal
 
 ## Backend
 [x]Optimize Datatable (Lemot) -> All page (Segera) -> Done
