@@ -265,6 +265,53 @@ class SubmissionReviewController extends Controller
         return back()->with('success', 'Status film berhasil diperbarui.');
     }
 
+    /**
+     * Bulk update status kurasi: admin mencentang beberapa film di tabel
+     * Review Submission lalu mengubah statusnya sekaligus.
+     *
+     * Aturannya sengaja disamakan dengan updateCurationStatus() (ubah per
+     * baris): kolom `status` & `curation_status` diisi bersamaan, dan
+     * `winner_rank` dikosongkan kalau status baru bukan Official Selection.
+     * Endpoint per baris tetap dipakai apa adanya, tidak diubah.
+     */
+    public function bulkUpdateCurationStatus(Request $request)
+    {
+        abort_unless(auth()->user()->hasRole(['admin', 'adminsub']), 403);
+
+        $validated = $request->validate([
+            'curation_status' => 'required|string|in:' . implode(',', Film::curationStatuses()),
+            'film_ids'        => 'required|array|min:1|max:1000',
+            'film_ids.*'      => 'integer',
+        ], [
+            'film_ids.required' => 'Pilih minimal satu film terlebih dahulu.',
+            'film_ids.min'      => 'Pilih minimal satu film terlebih dahulu.',
+            'film_ids.max'      => 'Maksimal 1000 film sekali proses.',
+        ]);
+
+        $attributes = [
+            'status'          => $validated['curation_status'],
+            'curation_status' => $validated['curation_status'],
+        ];
+
+        if ($validated['curation_status'] !== Film::CURATION_APPROVED) {
+            $attributes['winner_rank'] = null;
+        }
+
+        $count = Film::whereIn('id', $validated['film_ids'])->update($attributes);
+
+        $statusLabel = Film::curationStatusLabels()[$validated['curation_status']];
+        $message     = $count . ' film berhasil diubah statusnya menjadi ' . $statusLabel . '.';
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => $message,
+                'count'   => $count,
+            ]);
+        }
+
+        return back()->with('success', $message);
+    }
+
     public function score(Request $request, Film $film, $stage)
     {
         $this->syncClosedSubmissionStatuses();

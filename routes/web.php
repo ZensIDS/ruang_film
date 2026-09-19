@@ -168,6 +168,9 @@ Route::middleware('auth')->group(function () {
     Route::post('/review/submissions/official-selection', [SubmissionReviewController::class, 'setOfficialSelection'])
         ->middleware('role:admin,adminsub')
         ->name('review.official-selection');
+    Route::post('/review/submissions/bulk-status', [SubmissionReviewController::class, 'bulkUpdateCurationStatus'])
+        ->middleware('role:admin,adminsub')
+        ->name('review.bulk-status');
     Route::patch('/review/submissions/{film}/status', [SubmissionReviewController::class, 'updateCurationStatus'])
         ->middleware('role:admin,adminsub')
         ->name('review.status');

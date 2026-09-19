@@ -11,10 +11,15 @@
     ];
     $currentStageLabel = $stageLabels[$stage] ?? ucfirst($stage);
 @endphp
-<div class="box-body table-responsive no-padding">
+<div class="box-body table-responsive no-padding" data-page="{{ $films->currentPage() }}">
     <table class="table table-bordered table-striped" style="margin-bottom:0;">
         <thead>
             <tr>
+                @if($isAdmin)
+                    <th style="width:36px;" class="text-center">
+                        <input type="checkbox" id="review-check-all" title="Pilih semua di halaman ini">
+                    </th>
+                @endif
                 <th style="width:50px;">No</th>
                 <th>Nama Tim/Komunitas Produksi</th>
                 <th>Judul Film</th>
@@ -65,6 +70,11 @@
                 $sisa  = $film->duration % 60;
             @endphp
             <tr>
+                @if($isAdmin)
+                <td class="text-center">
+                    <input type="checkbox" class="review-row-check" value="{{ $film->id }}">
+                </td>
+                @endif
                 <td>{{ $loop->iteration + ($films->currentPage() - 1) * $films->perPage() }}</td>
                 <td>
                     <strong>{{ $film->user->name ?? '-' }}</strong><br>
