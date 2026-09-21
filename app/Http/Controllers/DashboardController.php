@@ -258,7 +258,7 @@ class DashboardController extends Controller
             $duration = sprintf('%02d:%02d:%02d', floor($detik / 3600), floor(($detik % 3600) / 60), $detik % 60);
 
             $posterHtml = $film->poster
-                ? '<img src="' . e($film->poster_url) . '" style="width:80px;height:104px;border-radius:5px;object-fit:cover;flex-shrink:0;">'
+                ? '<div class="poster-skel"><img class="poster-img" src="' . e($film->poster_thumb_url) . '" width="80" height="104" loading="lazy" decoding="async" alt=""></div>'
                 : '<div style="width:80px;height:104px;border-radius:5px;background:#ddd;display:flex;align-items:center;justify-content:center;font-size:10px;color:#999;flex-shrink:0;">N/A</div>';
 
             $judul = '<div style="display:flex;align-items:center;gap:10px;">' . $posterHtml

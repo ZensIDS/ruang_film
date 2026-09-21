@@ -393,6 +393,22 @@
                     previous: "Sebelumnya",
                 },
             },
+            // Setelah tiap render tabel: hilangkan skeleton begitu gambar selesai dimuat
+            drawCallback: function() {
+                $('#tabel-submission .poster-skel').each(function() {
+                    const box = $(this);
+                    const img = box.find('img')[0];
+                    if (!img) return;
+
+                    const done = () => box.addClass('is-loaded');
+                    if (img.complete) {
+                        done(); // sudah ada di cache browser
+                    } else {
+                        img.addEventListener('load', done, { once: true });
+                        img.addEventListener('error', done, { once: true });
+                    }
+                });
+            },
             pageLength: 10,
             lengthMenu: [5, 10, 25, 50],
             order: [
@@ -456,5 +472,36 @@
     #tabel-submission_wrapper .dataTables_paginate {
         padding-bottom: 4px;
     }
+
+    /* Skeleton loader untuk poster di tabel */
+    #tabel-submission .poster-skel {
+        position: relative;
+        width: 80px;
+        height: 104px;
+        flex-shrink: 0;
+        overflow: hidden;
+        border-radius: 5px;
+        background: #ececec;
+    }
+    #tabel-submission .poster-skel::after {
+        content: '';
+        position: absolute;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .65), transparent);
+        transform: translateX(-100%);
+        animation: poster-shimmer 1.2s infinite;
+    }
+    #tabel-submission .poster-skel img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        opacity: 0;
+        transition: opacity .25s ease;
+    }
+    #tabel-submission .poster-skel.is-loaded img { opacity: 1; }
+    #tabel-submission .poster-skel.is-loaded::after { display: none; }
+    @keyframes poster-shimmer { to { transform: translateX(100%); } }
 </style>
 @endpush

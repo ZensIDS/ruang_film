@@ -212,8 +212,8 @@
             </div>
         </div>
 
-        <div class="relative overflow-hidden">
-            <div id="awardsCarouselTrack" class="flex">
+        <div id="awardsCarouselViewport" class="relative overflow-hidden" style="transition: height .35s ease;">
+            <div id="awardsCarouselTrack" class="flex" style="align-items: flex-start;">
                 <div class="w-full flex-shrink-0 px-2 award-slide">
                     <div class="glass-card p-6 md:p-8 lg:p-10 rounded-3xl transition-all duration-500 fade-up">
                         <div class="flex flex-col lg:flex-row gap-8 lg:gap-10">
@@ -548,5 +548,67 @@
         el.removeAttribute('role');
         el.removeAttribute('tabindex');
     }
+</script>
+<script>
+    // "What Happened Last Year": tinggi carousel mengikuti isi slide yang sedang tampil,
+    // bukan slide terpanjang. Tidak mengubah script slider yang sudah ada.
+    document.addEventListener('DOMContentLoaded', function () {
+        var viewport = document.getElementById('awardsCarouselViewport');
+        var track = document.getElementById('awardsCarouselTrack');
+        if (!viewport || !track) return;
+
+        var slides = Array.prototype.slice.call(track.querySelectorAll('.award-slide'));
+        if (!slides.length) return;
+
+        // Slide aktif = slide yang posisi kirinya paling dekat dengan tepi kiri viewport
+        function activeSlide() {
+            var vLeft = viewport.getBoundingClientRect().left;
+            var best = slides[0], bestDist = Infinity;
+            slides.forEach(function (slide) {
+                var dist = Math.abs(slide.getBoundingClientRect().left - vLeft);
+                if (dist < bestDist) { bestDist = dist; best = slide; }
+            });
+            return best;
+        }
+
+        function syncHeight() {
+            var h = activeSlide().offsetHeight;
+            if (h) viewport.style.height = h + 'px';
+        }
+
+        // Selama animasi geser berjalan, cek terus sampai posisinya settle
+        var settling = false;
+        function settle() {
+            if (settling) return;
+            settling = true;
+            var start = performance.now();
+            (function tick(now) {
+                syncHeight();
+                if (now - start < 900) {
+                    requestAnimationFrame(tick);
+                } else {
+                    settling = false;
+                }
+            })(start);
+        }
+
+        // Slide berpindah (transform/style/class berubah, tombol, swipe, autoplay)
+        new MutationObserver(settle).observe(track, { attributes: true, attributeFilter: ['style', 'class'] });
+        track.addEventListener('transitionend', syncHeight);
+        ['prevAwardBtn', 'nextAwardBtn'].forEach(function (id) {
+            var btn = document.getElementById(id);
+            if (btn) btn.addEventListener('click', settle);
+        });
+
+        // Isi slide berubah tinggi (gambar selesai dimuat, ganti ukuran layar)
+        window.addEventListener('resize', syncHeight);
+        window.addEventListener('load', syncHeight);
+        if (window.ResizeObserver) {
+            var ro = new ResizeObserver(syncHeight);
+            slides.forEach(function (slide) { ro.observe(slide); });
+        }
+
+        syncHeight();
+    });
 </script>
 @endsection

@@ -7,6 +7,7 @@ use App\Models\Film;
 use App\Models\ReviewRubric;
 use App\Models\SubmissionSetting;
 use App\Models\UserDetail;
+use App\Support\PosterThumbnail;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -144,6 +145,7 @@ class FilmController extends Controller
 
         // Upload Poster
         $posterPath = $request->file('poster')->store('posters', 'public');
+        PosterThumbnail::make($posterPath); // thumbnail kecil untuk tabel
 
         // Upload GSM (multiple)
         $gsmPaths = [];
@@ -313,7 +315,9 @@ class FilmController extends Controller
         // Ganti poster jika ada upload baru
         if ($request->hasFile('poster')) {
             Storage::disk('public')->delete($film->poster);
+            PosterThumbnail::delete($film->poster);
             $data['poster'] = $request->file('poster')->store('posters', 'public');
+            PosterThumbnail::make($data['poster']);
         }
 
         // Ganti GSM jika ada upload baru
@@ -366,6 +370,7 @@ class FilmController extends Controller
         // Hapus semua file terkait
         if ($film->poster) {
             Storage::disk('public')->delete($film->poster);
+            PosterThumbnail::delete($film->poster);
         }
 
         if ($film->kru) {
@@ -619,8 +624,10 @@ class FilmController extends Controller
             $detik = (int) $film->duration;
             $duration = sprintf('%02d:%02d:%02d', floor($detik / 3600), floor(($detik % 3600) / 60), $detik % 60);
 
+            // Kotak skeleton (shimmer) + gambar thumbnail yang di-lazy-load.
+            // Class "is-loaded" ditambahkan lewat JS di index.blade.php saat gambar selesai dimuat.
             $posterHtml = $film->poster
-                ? '<img src="' . e($film->poster_url) . '" style="width:72px;height:96px;object-fit:cover;border-radius:4px;flex-shrink:0;border:1px solid #ddd;">'
+                ? '<div class="poster-skel"><img class="poster-img" src="' . e($film->poster_thumb_url) . '" width="72" height="96" loading="lazy" decoding="async" alt=""></div>'
                 : '<div style="width:36px;height:48px;background:#eee;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:10px;color:#aaa;flex-shrink:0;">N/A</div>';
 
             $sutradara = $film->sutradara

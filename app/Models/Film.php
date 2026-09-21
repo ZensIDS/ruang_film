@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\PosterThumbnail;
 use App\Support\PublicMedia;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -297,6 +298,12 @@ class Film extends Model
     public function getPosterUrlAttribute()
     {
         return $this->mediaUrl($this->poster, 'landing/images/user.png');
+    }
+
+    /** Thumbnail kecil untuk tabel; otomatis fallback ke poster asli kalau thumbnail belum dibuat. */
+    public function getPosterThumbUrlAttribute()
+    {
+        return PosterThumbnail::url($this->poster, $this->poster_url);
     }
 
     public function getKruUrlAttribute()

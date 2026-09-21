@@ -3,6 +3,40 @@
 @php
     $isSubmissionAdmin = auth()->user()->hasRole(['admin', 'adminsub']);
 @endphp
+<style>
+    /* Skeleton loader untuk poster di tabel */
+    .poster-skel {
+        position: relative;
+        width: 72px;
+        height: 96px;
+        flex-shrink: 0;
+        overflow: hidden;
+        border-radius: 4px;
+        border: 1px solid #ddd;
+        background: #ececec;
+    }
+    .poster-skel::after {
+        content: '';
+        position: absolute;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .65), transparent);
+        transform: translateX(-100%);
+        animation: poster-shimmer 1.2s infinite;
+    }
+    .poster-skel img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        opacity: 0;
+        transition: opacity .25s ease;
+    }
+    .poster-skel.is-loaded img { opacity: 1; }
+    .poster-skel.is-loaded::after { display: none; }
+    @keyframes poster-shimmer { to { transform: translateX(100%); } }
+</style>
+
 <section class="content-header">
     <h1>Submission</h1>
 </section>
@@ -148,6 +182,22 @@
                     next: "Selanjutnya",
                     previous: "Sebelumnya",
                 },
+            },
+            // Setelah tiap render tabel: hilangkan skeleton begitu gambar selesai dimuat
+            drawCallback: function() {
+                $('#example4 .poster-skel').each(function() {
+                    const box = $(this);
+                    const img = box.find('img')[0];
+                    if (!img) return;
+
+                    const done = () => box.addClass('is-loaded');
+                    if (img.complete) {
+                        done(); // sudah ada di cache browser
+                    } else {
+                        img.addEventListener('load', done, { once: true });
+                        img.addEventListener('error', done, { once: true });
+                    }
+                });
             },
             pageLength: 10,
             lengthMenu: [5, 10, 25, 50],
