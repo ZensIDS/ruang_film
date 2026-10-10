@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\InsufficientStockException;
 use App\Exceptions\ShippingException;
 use App\Models\AppSetting;
 use App\Models\Cart;
 use App\Models\Expedition;
+use App\Models\Merchandise;
 use App\Models\Order;
 use App\Models\UserDetail;
 use App\Services\Shipping\RajaOngkirCostService;
@@ -39,6 +41,14 @@ class CheckoutController extends Controller
         if ($cart->items->isEmpty()) {
             return redirect()->route('cart.index')
                 ->with('warning', 'Keranjang Anda masih kosong.');
+        }
+
+        // Pastikan qty & harga sesuai stok terbaru sebelum ditampilkan di checkout
+        $notices = $cart->syncWithStock();
+
+        if ($notices) {
+            return redirect()->route('cart.index')
+                ->with('warning', implode(' ', $notices) . ' Silakan periksa keranjang Anda.');
         }
 
         $user = auth()->user()->load('detail');
@@ -271,7 +281,29 @@ class CheckoutController extends Controller
             }
         }
 
-        $order = DB::transaction(function () use ($cart, $request, $user, $subtotal, $selectedQuote, $destination) {
+        try {
+            $order = DB::transaction(function () use ($cart, $request, $user, $selectedQuote, $destination) {
+            // Kunci baris merchandise & validasi ulang stok (cegah race condition antar user)
+            $lockedMerchandise = Merchandise::whereIn('id', $cart->items->pluck('merchandise_id'))
+                ->orderBy('id')
+                ->lockForUpdate()
+                ->get()
+                ->keyBy('id');
+
+            $subtotal = 0;
+
+            foreach ($cart->items as $item) {
+                $locked = $lockedMerchandise->get($item->merchandise_id);
+
+                if (!$locked || !$locked->is_active || $item->quantity > $locked->qty_stock) {
+                    throw new InsufficientStockException(
+                        'Stok merchandise berubah dan tidak mencukupi. Silakan periksa kembali keranjang Anda.'
+                    );
+                }
+
+                $subtotal += $item->quantity * $locked->currentPrice();
+            }
+
             $order = Order::create([
                 'invoice_number'          => $this->generateInvoiceNumber(),
                 'user_id'                 => $user->id,
@@ -300,7 +332,7 @@ class CheckoutController extends Controller
             ]);
 
             foreach ($cart->items as $item) {
-                $merchandise = $item->merchandise;
+                $merchandise = $lockedMerchandise->get($item->merchandise_id);
 
                 $order->items()->create([
                     'merchandise_id'    => $merchandise->id,
@@ -319,7 +351,11 @@ class CheckoutController extends Controller
             $cart->items()->delete();
 
             return $order;
-        });
+            });
+        } catch (InsufficientStockException $exception) {
+            return redirect()->route('cart.index')
+                ->with('warning', $exception->getMessage());
+        }
 
         return redirect()->route('orders.show', $order)
             ->with('success', 'Invoice berhasil dibuat. Silakan lanjutkan pembayaran.');

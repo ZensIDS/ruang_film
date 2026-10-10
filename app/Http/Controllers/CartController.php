@@ -15,7 +15,12 @@ class CartController extends Controller
             ['user_id' => auth()->id()]
         );
 
-        $cart->load('items.merchandise.category');
+        // Sinkronkan qty/harga keranjang dengan stok terbaru
+        $notices = $cart->syncWithStock();
+
+        if ($notices) {
+            session()->now('warning', implode(' ', $notices));
+        }
 
         return view('landing.cart', [
             'cart' => $cart,

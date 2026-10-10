@@ -1,12 +1,21 @@
+@php($soldOut = $merchandise->qty_stock < 1)
 <div class="group merchandise-card transition-all duration-500">
     <div class="glass-card-light rounded-2xl overflow-hidden transition-all duration-500 group-hover:scale-[1.03] group-hover:-translate-y-2 group-hover:shadow-[0_0_25px_#6D28D9] h-full flex flex-col">
         <div class="relative w-full overflow-hidden bg-gradient-to-br from-purple-900/30 to-black/50" style="height:200px;">
             <img src="{{ $merchandise->image ? asset('storage/' . $merchandise->image) : asset('landing/images/merchan/merchan1.jpg') }}"
                 alt="{{ $merchandise->name }}"
-                class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110">
+                class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 {{ $soldOut ? 'grayscale brightness-50' : '' }}">
+
+            @if($soldOut)
+            <div class="absolute inset-0 z-10 flex items-center justify-center bg-black/50 pointer-events-none">
+                <span class="-rotate-12 border-4 border-red-500 text-red-500 text-2xl font-extrabold tracking-[0.25em] px-5 py-1 rounded-lg uppercase bg-black/40 shadow-lg">
+                    Sold Out
+                </span>
+            </div>
+            @endif
 
             @if($merchandise->category)
-            <span class="absolute top-3 left-3 bg-purple-700 text-purple-100 text-[10px] font-semibold px-2 py-1 rounded-full tracking-wide">
+            <span class="absolute top-3 left-3 z-20 bg-purple-700 text-purple-100 text-[10px] font-semibold px-2 py-1 rounded-full tracking-wide">
                 {{ $merchandise->category->name }}
             </span>
             @endif
@@ -38,10 +47,10 @@
                 <form action="{{ route('cart.store', $merchandise) }}" method="POST" class="flex-1">
                     @csrf
                     <button type="submit"
-                        class="w-full h-10 rounded-xl border border-purple-500/40 bg-purple-500/10 text-purple-300 text-sm font-semibold flex items-center justify-center gap-2 hover:bg-purple-500/25 transition-colors duration-200 {{ $merchandise->qty_stock < 1 ? 'opacity-50 cursor-not-allowed' : '' }}"
-                        {{ $merchandise->qty_stock < 1 ? 'disabled' : '' }}>
+                        class="w-full h-10 rounded-xl border border-purple-500/40 bg-purple-500/10 text-purple-300 text-sm font-semibold flex items-center justify-center gap-2 hover:bg-purple-500/25 transition-colors duration-200 {{ $soldOut ? 'opacity-50 cursor-not-allowed' : '' }}"
+                        {{ $soldOut ? 'disabled' : '' }}>
                         <i class="fas fa-shopping-cart text-sm"></i>
-                        {{ $merchandise->qty_stock < 1 ? 'Stok Habis' : 'Tambah ke Keranjang' }}
+                        {{ $soldOut ? 'Stok Habis' : 'Tambah ke Keranjang' }}
                     </button>
                 </form>
                 {{-- <a href="{{ route('cart.index') }}" --}}
