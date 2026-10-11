@@ -17,13 +17,14 @@ class DatabaseSeeder extends Seeder
             // ProgramCategorySeeder::class,
             // ProgramSeeder::class,
             // CategorySeeder::class,
-            FaqSeeder::class,
+            // FaqSeeder::class,
             // SubmissionSettingSeeder::class,
             // AppSettingSeeder::class,
             // UserSeeder::class,
             // CommerceSeeder::class,
             // RubrikPenilaianSeeder::class,
             // FilmSeeder::class,
+            BioskopSeeder::class,
         ]);
     }
 }

@@ -4,6 +4,7 @@ use App\Http\Controllers\AdminMerchandiseController;
 use App\Http\Controllers\AdminProgramController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BankAccountController;
+use App\Http\Controllers\BioskopController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\CheckoutController;
@@ -215,6 +216,7 @@ Route::middleware(['auth', 'role:admin,adminmerch,adminprog'])->group(function (
     Route::resource('/faqs', FaqController::class)->except('show');
     Route::resource('/juries', JuryController::class)->except('show');
     Route::resource('/admin-programs', AdminProgramController::class)->except('show');
+    Route::resource('/bioskops', BioskopController::class)->except('show');
     Route::resource('/expeditions', ExpeditionController::class)->except('show');
     Route::resource('/bank-accounts', BankAccountController::class)->except('show');
 });

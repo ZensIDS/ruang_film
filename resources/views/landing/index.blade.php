@@ -125,6 +125,8 @@
         </div>
     </section>
 
+    @include('landing.partials.home-bioskop-section', ['bioskops' => $bioskops ?? collect()])
+
     <section class="max-w-7xl mx-auto px-6 md:px-10 py-24 md:py-32">
         <div class="fade-up">
             <h2 class="text-3xl md:text-5xl font-bold text-left border-l-8 border-purple-500 pl-6 mb-14 tracking-tight">

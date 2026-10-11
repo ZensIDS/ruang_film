@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Bioskop;
 use App\Models\Category;
 use App\Models\Faq;
 use App\Models\Film;
@@ -55,6 +56,7 @@ class LandingController extends Controller
             [
                 'featuredMerchandises'   => $featuredMerchandises,
                 'featuredPortalPrograms' => $featuredPortalPrograms,
+                'bioskops'               => Bioskop::active()->ordered()->get(),
             ]
         ));
     }
