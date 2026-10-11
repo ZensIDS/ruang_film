@@ -27,12 +27,23 @@
                         data-update-url="{{ route('cart.update', $item) }}"
                         data-delete-url="{{ route('cart.destroy', $item) }}"
                         data-current-quantity="{{ $item->quantity }}"
-                        data-max-quantity="{{ optional($item->merchandise)->qty_stock ?? $item->quantity }}">
+                        data-max-quantity="{{ max(1, $item->availableStock()) }}">
                         <img src="{{ $item->merchandise && $item->merchandise->image ? asset('storage/' . $item->merchandise->image) : asset('landing/images/merchan/merchan1.jpg') }}"
                             alt="{{ $item->merchandise->name ?? 'Merchandise' }}"
                             class="w-full md:w-28 h-28 object-cover rounded-2xl">
                         <div class="flex-1">
-                            <h3 class="text-lg font-semibold text-white">{{ $item->merchandise->name ?? 'Merchandise tidak ditemukan' }}</h3>
+                            <h3 class="text-lg font-semibold text-white">
+                                @if($item->merchandise)
+                                <a href="{{ $item->merchandise->detailUrl() }}" class="hover:text-purple-300 transition">{{ $item->merchandise->name }}</a>
+                                @else
+                                Merchandise tidak ditemukan
+                                @endif
+                            </h3>
+                            @if($item->variant)
+                            <p class="mt-1 inline-flex items-center rounded-full border border-purple-500/40 bg-purple-500/10 px-2.5 py-0.5 text-xs font-semibold text-purple-200">
+                                Varian: {{ $item->variant->name }}
+                            </p>
+                            @endif
                             <p class="text-sm text-gray-400 mt-1">
                                 {{ $item->merchandise->category->name ?? '-' }} • {{ number_format(optional($item->merchandise)->weight ?? 0) }} gram
                             </p>
@@ -50,7 +61,7 @@
                                 <div class="flex items-center gap-2">
                                     <button type="button" data-qty-action="decrease"
                                         class="w-10 h-10 rounded-xl border border-purple-500/30 text-purple-200 hover:bg-purple-500/10 transition">-</button>
-                                    <input type="number" name="quantity" min="1" max="{{ optional($item->merchandise)->qty_stock ?? $item->quantity }}"
+                                    <input type="number" name="quantity" min="1" max="{{ max(1, $item->availableStock()) }}"
                                         value="{{ $item->quantity }}"
                                         data-quantity-input
                                         onchange="if (!window.cartAutoUpdateEnabled) { this.form.submit(); }"
@@ -58,7 +69,7 @@
                                     <button type="button" data-qty-action="increase"
                                         class="w-10 h-10 rounded-xl border border-purple-500/30 text-purple-200 hover:bg-purple-500/10 transition">+</button>
                                 </div>
-                                <p class="text-xs text-gray-500">Stok tersedia: {{ optional($item->merchandise)->qty_stock ?? $item->quantity }}</p>
+                                <p class="text-xs text-gray-500">Stok tersedia: {{ $item->availableStock() }}</p>
                             </form>
                             <form action="{{ route('cart.destroy', $item) }}" method="POST" class="mt-3" data-cart-delete-form>
                                 @csrf

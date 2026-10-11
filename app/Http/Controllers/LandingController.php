@@ -34,7 +34,7 @@ class LandingController extends Controller
 
     public function home()
     {
-        $featuredMerchandises = Merchandise::with('category')
+        $featuredMerchandises = Merchandise::with(['category', 'activeVariants'])
             ->active()
             ->latest()
             ->take(6)
@@ -102,7 +102,7 @@ class LandingController extends Controller
 
     public function merchandise(Request $request)
     {
-        $query = Merchandise::with('category')->active();
+        $query = Merchandise::with(['category', 'activeVariants'])->active();
 
         if ($request->filled('q')) {
             $search = trim($request->q);
@@ -132,6 +132,28 @@ class LandingController extends Controller
             'merchandises'          => $merchandises,
             'merchandiseCategories' => MerchandiseCategory::where('is_active', true)->orderBy('name')->get(),
             'filters'               => $request->only(['q', 'category', 'sort']),
+        ]);
+    }
+
+    public function merchandiseShow(Merchandise $merchandise)
+    {
+        abort_unless($merchandise->is_active, 404);
+
+        $merchandise->load(['category', 'activeVariants']);
+
+        $relatedMerchandises = Merchandise::with(['category', 'activeVariants'])
+            ->active()
+            ->where('id', '!=', $merchandise->id)
+            ->when($merchandise->merchandise_category_id, function ($query) use ($merchandise) {
+                $query->where('merchandise_category_id', $merchandise->merchandise_category_id);
+            })
+            ->latest()
+            ->take(4)
+            ->get();
+
+        return view('landing.merchandise-show', [
+            'merchandise'         => $merchandise,
+            'relatedMerchandises' => $relatedMerchandises,
         ]);
     }
 

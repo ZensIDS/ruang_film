@@ -1,7 +1,7 @@
 @extends('layouts.landing.master')
 @section('main')
 @php
-    $detail = $user->detail;
+    $detail = optional($user)->detail;
     $subtotal = $cart->subtotal();
     $savedDestinationLabel = collect([
         optional($detail)->desa_name,
@@ -30,7 +30,19 @@
             @csrf
             <input type="hidden" name="selected_shipping_option" id="selected_shipping_option" value="{{ old('selected_shipping_option') }}">
 
+            {{-- Honeypot anti-bot: tidak terlihat oleh manusia, bot biasanya mengisinya --}}
+            <div aria-hidden="true" style="position:absolute;left:-9999px;top:-9999px;height:0;width:0;overflow:hidden;">
+                <label>Jangan diisi <input type="text" name="fax_number" tabindex="-1" autocomplete="off" value=""></label>
+            </div>
+
             <div class="space-y-8">
+                @if(!empty($isGuest))
+                <div class="rounded-2xl border border-purple-500/30 bg-purple-500/10 px-5 py-4 text-sm text-purple-100">
+                    <p class="font-semibold text-white">Checkout sebagai tamu</p>
+                    <p class="mt-1 text-purple-200">Tidak perlu daftar atau login. Setelah pesanan dibuat, simpan link invoice untuk mengunggah bukti transfer.
+                        Sudah punya akun? <a href="{{ route('login', ['role' => 'umum']) }}" class="underline font-semibold text-white">Masuk</a>.</p>
+                </div>
+                @endif
                 <div class="glass-card rounded-3xl p-6 md:p-8">
                     <h2 class="text-xl font-semibold text-white">{{ $isGeneralBuyer ? 'Biodata Pengiriman' : 'Alamat Pengiriman' }}</h2>
 
@@ -41,14 +53,14 @@
                                 <label class="field-label">Nama Lengkap</label>
                                 <div class="input-icon-wrap">
                                     <i class="fas fa-user"></i>
-                                    <input type="text" name="name" class="field-input" value="{{ old('name', $user->name) }}" required>
+                                    <input type="text" name="name" class="field-input" value="{{ old('name', optional($user)->name) }}" required>
                                 </div>
                             </div>
                             <div class="field-group !mb-0">
                                 <label class="field-label">Email</label>
                                 <div class="input-icon-wrap">
                                     <i class="fas fa-envelope"></i>
-                                    <input type="email" name="email" class="field-input" value="{{ old('email', $user->email) }}" required>
+                                    <input type="email" name="email" class="field-input" value="{{ old('email', optional($user)->email) }}" required>
                                 </div>
                             </div>
                         </div>
@@ -57,7 +69,7 @@
                             <label class="field-label">Nomor WhatsApp</label>
                             <div class="input-icon-wrap">
                                 <i class="fab fa-whatsapp"></i>
-                                <input type="text" name="no_hp" class="field-input" value="{{ old('no_hp', $user->no_hp) }}" required>
+                                <input type="text" name="no_hp" class="field-input" value="{{ old('no_hp', optional($user)->no_hp) }}" required>
                             </div>
                         </div>
 
@@ -184,7 +196,7 @@
                     @foreach($cart->items as $item)
                     <div class="flex items-start justify-between gap-4 text-sm">
                         <div>
-                            <div class="text-white font-medium">{{ $item->merchandise->name }}</div>
+                            <div class="text-white font-medium">{{ $item->label() }}</div>
                             <div class="text-gray-400">{{ $item->quantity }} x Rp {{ number_format($item->unit_price, 0, ',', '.') }}</div>
                         </div>
                         <div class="text-purple-300 font-semibold">
@@ -264,7 +276,7 @@
     const villageNameInput = document.getElementById('desa_name');
     const postalCodeInput = document.getElementById('postal_code');
     const fixedDestinationTextInput = document.getElementById('fixed-destination-text');
-    const destinationStorageKey = "shipping_destination_{{ $user->id }}";
+    const destinationStorageKey = "shipping_destination_{{ $user ? $user->id : 'guest' }}";
     const totalWeightGram = Number(summarySubtotal.dataset.totalWeight || 0);
     const totalWeightKg   = totalWeightGram / 1000;
 

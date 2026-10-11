@@ -99,6 +99,7 @@ Route::get('/merchandise', [LandingController::class, 'merchandise'])->name('mer
 Route::get('/merchandise/biodata', function () {
     return redirect()->route('user-detail.index');
 });
+Route::get('/merchandise/{merchandise:slug}', [LandingController::class, 'merchandiseShow'])->name('merchandise.show');
 
 //? CRUD Pages :
 
@@ -141,17 +142,32 @@ Route::post('/film/{film}/originality-letter', [FilmController::class, 'uploadOr
 // Category
 Route::resource('/categories', CategoryController::class)->middleware('auth');
 
-Route::middleware('auth')->group(function () {
-    Route::get('/cart', [CartController::class, 'index'])->name('cart.index');
+// ---------------------------------------------------------------------------
+// Keranjang, checkout & pesanan: terbuka untuk pembeli tamu (tanpa login).
+// Pengaman: CSRF (grup web), rate limit per IP, honeypot & batas pesanan di controller,
+// dan akses invoice tamu hanya lewat token acak di URL.
+// ---------------------------------------------------------------------------
+Route::get('/cart', [CartController::class, 'index'])->name('cart.index');
+Route::middleware('throttle:60,1')->group(function () {
     Route::post('/cart/{merchandise}', [CartController::class, 'store'])->name('cart.store');
     Route::put('/cart/item/{cartItem}', [CartController::class, 'update'])->name('cart.update');
     Route::delete('/cart/item/{cartItem}', [CartController::class, 'destroy'])->name('cart.destroy');
+});
 
-    Route::get('/checkout', [CheckoutController::class, 'show'])->name('checkout.show');
+Route::get('/checkout', [CheckoutController::class, 'show'])->name('checkout.show');
+// Dua endpoint ini memanggil API RajaOngkir (kuota berbayar), jadi dibatasi lebih ketat
+Route::middleware('throttle:30,1')->group(function () {
     Route::get('/checkout/destination-search', [CheckoutController::class, 'searchDestination'])->name('checkout.destination-search');
     Route::post('/checkout/shipping-options', [CheckoutController::class, 'shippingOptions'])->name('checkout.shipping-options');
-    Route::post('/checkout', [CheckoutController::class, 'store'])->name('checkout.store');
+});
+Route::post('/checkout', [CheckoutController::class, 'store'])->middleware('throttle:6,10')->name('checkout.store');
 
+Route::get('/cek-pesanan', [OrderController::class, 'guestLookupForm'])->name('orders.guest.lookup');
+Route::post('/cek-pesanan', [OrderController::class, 'guestLookup'])->middleware('throttle:8,1')->name('orders.guest.lookup.submit');
+Route::get('/pesanan/{token}', [OrderController::class, 'guestShow'])->middleware('throttle:60,1')->name('orders.guest.show');
+Route::post('/pesanan/{token}/bukti-bayar', [OrderController::class, 'guestUploadPaymentProof'])->middleware('throttle:10,1')->name('orders.guest.payment-proof');
+
+Route::middleware('auth')->group(function () {
     Route::get('/orders', [OrderController::class, 'index'])->name('orders.index');
     Route::get('/orders/{order}', [OrderController::class, 'show'])->name('orders.show');
     Route::post('/orders/{order}/payment-proof', [OrderController::class, 'uploadPaymentProof'])->name('orders.payment-proof');

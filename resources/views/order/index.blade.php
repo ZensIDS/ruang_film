@@ -155,7 +155,13 @@
                                 <td><input type="checkbox" class="checkbox-order" value="{{ $order->id }}"></td>
                                 <td>{{ $loop->iteration }}</td>
                                 <td>{{ $order->invoice_number }}</td>
-                                <td>{{ $order->user->name ?? '-' }}</td>
+                                <td>
+                                    {{ $order->recipient_name ?: ($order->user->name ?? '-') }}
+                                    @if($order->isGuest())
+                                    <span class="label label-default" title="Checkout tanpa akun">Tamu</span>
+                                    @endif
+                                    <br><small class="text-muted">{{ $order->recipient_phone }}</small>
+                                </td>
                                 <td>@currency($order->total)</td>
                                 <td>
                                     <span class="label label-{{ $order->status === 'paid' ? 'success' : ($order->status === 'waiting_verification' ? 'warning' : ($order->status === 'expired' || $order->status === 'payment_rejected' ? 'danger' : 'info')) }}">
@@ -165,6 +171,17 @@
                                 <td>{{ optional($order->payment_due_at)->translatedFormat('d M Y H:i') ?? '-' }}</td>
                                 <td>
                                     <a href="{{ route('admin.orders.show', $order) }}" class="btn btn-info btn-xs">Detail</a>
+                                    @php($waUrl = $order->whatsappUrl())
+                                    @if($waUrl)
+                                    <a href="{{ $waUrl }}" target="_blank" rel="noopener noreferrer" class="btn btn-success btn-xs"
+                                        title="Hubungi pembeli via WhatsApp">
+                                        <i class="fa fa-whatsapp"></i> WhatsApp
+                                    </a>
+                                    @else
+                                    <button type="button" class="btn btn-default btn-xs" disabled title="Nomor HP pembeli tidak valid">
+                                        <i class="fa fa-whatsapp"></i> WhatsApp
+                                    </button>
+                                    @endif
                                     <a href="{{ route('admin.orders.print', $order) }}" class="btn btn-default btn-xs">
                                         <i class="fa fa-file-pdf-o"></i> PDF
                                     </a>

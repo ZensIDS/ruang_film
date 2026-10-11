@@ -141,7 +141,7 @@
                     <h3>Pembeli</h3>
                     <p><strong>{{ $order->recipient_name }}</strong></p>
                     <p>{{ $order->recipient_phone }}</p>
-                    <p>{{ $order->user->email ?? '-' }}</p>
+                    <p>{{ $order->recipient_email ?: ($order->user->email ?? '-') }}</p>
                 </td>
                 <td>
                     <h3>Pengiriman</h3>

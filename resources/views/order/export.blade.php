@@ -71,7 +71,7 @@
     <tr>
         <td>{{ $loop->iteration }}</td>
         <td>{{ $order->invoice_number }}</td>
-        <td>{{ $order->user->name ?? '-' }}</td>
+        <td>{{ $order->recipient_name ?: ($order->user->name ?? '-') }}</td>
         <td>{{ (float) $order->total }}</td>
         <td>{{ strtoupper(str_replace('_', ' ', $order->status)) }}</td>
         <td>{{ optional($order->payment_due_at)->translatedFormat('d M Y H:i') ?? '-' }}</td>

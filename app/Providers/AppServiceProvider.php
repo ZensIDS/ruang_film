@@ -3,7 +3,7 @@
 namespace App\Providers;
 
 use App\Models\AppSetting;
-use App\Models\CartItem;
+use App\Models\Cart;
 use App\Models\SubmissionSetting;
 use App\Models\User;
 use Throwable;
@@ -40,7 +40,8 @@ class AppServiceProvider extends ServiceProvider
 
         view()->composer('*', function ($view) {
             static $sharedData = [];
-            $cacheKey = auth()->id() ?: 'guest';
+            // Kunci per user login / per keranjang tamu, supaya badge keranjang tidak tertukar antar pengunjung
+            $cacheKey = auth()->id() ?: ('guest:' . (Cart::guestToken() ?: 'none'));
 
             if (!array_key_exists($cacheKey, $sharedData)) {
                 $sharedData[$cacheKey] = $this->resolveSharedViewData();
@@ -74,12 +75,9 @@ class AppServiceProvider extends ServiceProvider
                 $paymentDueHours = AppSetting::paymentDueHours();
             }
 
-            if (auth()->id() && Schema::hasTable('carts') && Schema::hasTable('cart_items')) {
-                $landingCartCount = (int) CartItem::query()
-                    ->whereHas('cart', function ($query) {
-                        $query->where('user_id', auth()->id());
-                    })
-                    ->sum('quantity');
+            if (Schema::hasTable('carts') && Schema::hasTable('cart_items')) {
+                // User login: keranjang akun (keranjang tamu otomatis digabung). Tamu: keranjang dari cookie.
+                $landingCartCount = Cart::currentQuantity();
             }
         } catch (Throwable $exception) {
             // Allow console commands and tests to boot even when the database

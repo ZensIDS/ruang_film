@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Exceptions\ShippingException;
 use App\Models\BankAccount;
 use App\Models\Merchandise;
+use App\Models\MerchandiseVariant;
 use App\Models\Order;
 use App\Services\Shipping\RajaOngkirDeliveryService;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -43,6 +44,11 @@ class OrderController extends Controller
         $this->expireOverdueOrders();
         abort_unless(auth()->user() && auth()->user()->ownsUserId($order->user_id), 403);
 
+        return $this->storePaymentProof($request, $order);
+    }
+
+    protected function storePaymentProof(Request $request, Order $order)
+    {
         if (!$order->canUploadProof()) {
             return back()->with('warning', 'Bukti transfer tidak dapat diunggah untuk invoice ini.');
         }
@@ -66,6 +72,76 @@ class OrderController extends Controller
         ]);
 
         return back()->with('success', 'Bukti transfer berhasil diunggah.');
+    }
+
+    /* ------------------------------------------------------------------
+     |  Akses pembeli tamu (tanpa login) lewat token acak di URL
+     | ------------------------------------------------------------------ */
+
+    public function guestLookupForm()
+    {
+        return view('landing.order-lookup');
+    }
+
+    public function guestLookup(Request $request)
+    {
+        $data = $request->validate([
+            'invoice_number' => 'required|string|max:50',
+            'no_hp' => 'required|string|max:20',
+        ]);
+
+        $order = Order::where('invoice_number', trim($data['invoice_number']))->first();
+
+        $inputPhone = substr(preg_replace('/\D+/', '', $data['no_hp']), -9);
+        $orderPhone = $order ? substr(preg_replace('/\D+/', '', (string) $order->recipient_phone), -9) : '';
+
+        // Pesan error sengaja generik agar tidak bisa dipakai menebak invoice / nomor HP milik orang lain
+        if (!$order || !$order->access_token || strlen($inputPhone) < 9 || !hash_equals($orderPhone, $inputPhone)) {
+            return back()
+                ->withInput($request->only('invoice_number'))
+                ->withErrors(['invoice_number' => 'Invoice atau nomor HP tidak cocok.']);
+        }
+
+        return redirect()->route('orders.guest.show', ['token' => $order->access_token]);
+    }
+
+    public function guestShow($token)
+    {
+        $this->expireOverdueOrders();
+
+        $order = $this->findGuestOrder($token)->load(['items', 'verifier']);
+
+        return $this->privateResponse(response()->view('landing.invoice', [
+            'order' => $order,
+            'bankAccounts' => BankAccount::where('is_active', true)->orderBy('rek_bank_name')->get(),
+            'proofAction' => route('orders.guest.payment-proof', ['token' => $order->access_token]),
+            'isGuestView' => true,
+        ]));
+    }
+
+    public function guestUploadPaymentProof(Request $request, $token)
+    {
+        $this->expireOverdueOrders();
+
+        return $this->storePaymentProof($request, $this->findGuestOrder($token));
+    }
+
+    protected function findGuestOrder($token)
+    {
+        // Token acak 48 karakter; format yang salah langsung 404 tanpa menyentuh database
+        abort_unless(is_string($token) && preg_match('/^[A-Za-z0-9]{48}$/', $token), 404);
+
+        return Order::where('access_token', $token)->firstOrFail();
+    }
+
+    /** Halaman berisi token tidak boleh di-cache, diindeks mesin pencari, atau bocor lewat referrer. */
+    protected function privateResponse($response)
+    {
+        return $response->withHeaders([
+            'Cache-Control' => 'no-store, private',
+            'Referrer-Policy' => 'no-referrer',
+            'X-Robots-Tag' => 'noindex, nofollow',
+        ]);
     }
 
     public function adminIndex(Request $request)
@@ -330,13 +406,37 @@ class OrderController extends Controller
 
     protected function restoreStock(Order $order)
     {
+        $variantProductIds = [];
+
         foreach ($order->items as $item) {
             if (!$item->merchandise_id) {
                 continue;
             }
 
+            if ($item->merchandise_variant_id) {
+                MerchandiseVariant::where('id', $item->merchandise_variant_id)
+                    ->increment('qty_stock', $item->quantity);
+
+                $variantProductIds[$item->merchandise_id] = true;
+                continue;
+            }
+
+            // Varian sudah dihapus admin: stok tidak bisa dikembalikan ke produk induk
+            if ($item->variant_name) {
+                continue;
+            }
+
             Merchandise::where('id', $item->merchandise_id)
                 ->increment('qty_stock', $item->quantity);
+        }
+
+        // Total stok produk bervarian = jumlah stok semua varian
+        foreach (array_keys($variantProductIds) as $merchandiseId) {
+            $merchandise = Merchandise::find($merchandiseId);
+
+            if ($merchandise) {
+                $merchandise->syncStockFromVariants();
+            }
         }
     }
 

@@ -3,6 +3,20 @@
 @php($hasPaymentProofError = $errors->uploadPaymentProof->has('payment_proof'))
 <main class="relative z-10">
     <section class="max-w-6xl mx-auto px-6 md:px-10 py-16">
+        @if(!empty($isGuestView))
+        <div class="mb-8 rounded-2xl border border-purple-500/30 bg-purple-500/10 px-5 py-4 text-sm text-purple-100">
+            <p class="font-semibold text-white">Simpan link halaman ini</p>
+            <p class="mt-1 text-purple-200">Link ini adalah satu-satunya akses ke invoice Anda (tanpa login). Jangan dibagikan ke orang lain.
+                Jika hilang, buka <a href="{{ route('orders.guest.lookup') }}" class="underline font-semibold text-white">Cek Pesanan</a> dan masukkan nomor invoice serta nomor WhatsApp Anda.</p>
+            <div class="mt-3 flex flex-col sm:flex-row gap-2">
+                <input type="text" id="guest-order-link" readonly value="{{ url()->current() }}"
+                    class="flex-1 min-w-0 rounded-xl bg-black/30 border border-purple-500/30 px-3 py-2 text-xs text-gray-200">
+                <button type="button" id="copy-guest-link"
+                    class="h-10 px-4 rounded-xl bg-purple-600 text-white text-sm font-semibold">Salin Link</button>
+            </div>
+        </div>
+        @endif
+
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
             <div>
                 <p class="text-purple-400 text-sm uppercase tracking-wider font-semibold mb-2">INVOICE</p>
@@ -114,7 +128,7 @@
             </div>
 
             @if($order->canUploadProof())
-            <form action="{{ route('orders.payment-proof', $order) }}" method="POST" enctype="multipart/form-data" class="mt-6">
+            <form action="{{ $proofAction ?? route('orders.payment-proof', $order) }}" method="POST" enctype="multipart/form-data" class="mt-6">
                 @csrf
                 <label class="text-sm text-gray-300">Bukti Transfer</label>
                 <input type="file" name="payment_proof" accept=".jpg,.jpeg,.png,.pdf" required
@@ -141,6 +155,24 @@
 
 @push('scripts')
 <script>
+    const copyGuestLink = document.getElementById('copy-guest-link');
+    const guestLinkInput = document.getElementById('guest-order-link');
+
+    if (copyGuestLink && guestLinkInput) {
+        copyGuestLink.addEventListener('click', function() {
+            guestLinkInput.select();
+
+            const done = function() { copyGuestLink.textContent = 'Tersalin!'; };
+
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(guestLinkInput.value).then(done);
+            } else {
+                document.execCommand('copy');
+                done();
+            }
+        });
+    }
+
     const openPaymentModal = document.getElementById('open-payment-modal');
     const closePaymentModal = document.getElementById('close-payment-modal');
     const paymentModal = document.getElementById('payment-modal');

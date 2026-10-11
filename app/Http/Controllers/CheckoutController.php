@@ -8,6 +8,7 @@ use App\Models\AppSetting;
 use App\Models\Cart;
 use App\Models\Expedition;
 use App\Models\Merchandise;
+use App\Models\MerchandiseVariant;
 use App\Models\Order;
 use App\Models\UserDetail;
 use App\Services\Shipping\RajaOngkirCostService;
@@ -35,10 +36,9 @@ class CheckoutController extends Controller
 
     public function show()
     {
-        $cart = Cart::with('items.merchandise.category')
-            ->firstOrCreate(['user_id' => auth()->id()]);
+        $cart = Cart::current(false);
 
-        if ($cart->items->isEmpty()) {
+        if (!$cart->exists || $cart->items()->doesntExist()) {
             return redirect()->route('cart.index')
                 ->with('warning', 'Keranjang Anda masih kosong.');
         }
@@ -51,10 +51,11 @@ class CheckoutController extends Controller
                 ->with('warning', implode(' ', $notices) . ' Silakan periksa keranjang Anda.');
         }
 
-        $user = auth()->user()->load('detail');
-        $isGeneralBuyer = $user->isGeneralBuyer();
+        // Pembeli tamu (belum login) diperlakukan seperti "general buyer": isi biodata langsung di form
+        $user = auth()->check() ? auth()->user()->load('detail') : null;
+        $isGeneralBuyer = $this->isGeneralBuyer($user);
 
-        if (!$user->detail && !$isGeneralBuyer) {
+        if ($user && !$user->detail && !$isGeneralBuyer) {
             return redirect()->route('user-detail.index')
                 ->with('warning', 'Lengkapi biodata terlebih dahulu sebelum checkout.');
         }
@@ -62,6 +63,7 @@ class CheckoutController extends Controller
         return view('landing.checkout', [
             'cart' => $cart,
             'user' => $user,
+            'isGuest' => $user === null,
             'isGeneralBuyer' => $isGeneralBuyer,
             'provinsi' => $isGeneralBuyer ? Province::orderBy('name')->get() : collect(),
             'selfPickupOption' => static::SELF_PICKUP_OPTION,
@@ -74,11 +76,14 @@ class CheckoutController extends Controller
 
     public function shippingOptions(Request $request, RajaOngkirDestinationResolver $destinationResolver, RajaOngkirCostService $costService)
     {
-        $user = auth()->user()->load('detail');
-        $cart = Cart::with('items.merchandise')
-            ->firstOrCreate(['user_id' => $user->id]);
+        $user = auth()->check() ? auth()->user()->load('detail') : null;
+        $cart = Cart::current(false);
 
-        if ($cart->items->isEmpty()) {
+        if ($cart->exists) {
+            $cart->load('items.merchandise', 'items.variant');
+        }
+
+        if (!$cart->exists || $cart->items->isEmpty()) {
             return response()->json([
                 'message' => 'Keranjang Anda masih kosong.',
                 'errors' => ['cart' => ['Keranjang Anda masih kosong.']],
@@ -159,8 +164,14 @@ class CheckoutController extends Controller
 
     public function store(Request $request, RajaOngkirDestinationResolver $destinationResolver, RajaOngkirCostService $costService)
     {
-        $user           = auth()->user()->load('detail');
-        $isGeneralBuyer = $user->isGeneralBuyer();
+        // Honeypot: kolom tersembunyi yang hanya diisi bot. Pura-pura sukses agar bot tidak belajar.
+        if (filled($request->input('fax_number'))) {
+            return redirect()->route('landing.home');
+        }
+
+        $user           = auth()->check() ? auth()->user()->load('detail') : null;
+        $isGuest        = $user === null;
+        $isGeneralBuyer = $this->isGeneralBuyer($user);
         $isSelfPickup   = $this->isSelfPickupSelection($request->input('selected_shipping_option'));
         $isSentPacitan  = $this->isPacitanSelection($request->input('selected_shipping_option')); // BARU
         $usesSelectedDestination = $this->hasSelectedDestination($request);
@@ -175,7 +186,10 @@ class CheckoutController extends Controller
         if ($isGeneralBuyer) {
             $rules = array_merge($rules, [
                 'name'         => 'required|string|max:100',
-                'email'        => ['required', 'email', Rule::unique('users', 'email')->ignore($user->id)],
+                // Tamu tidak membuat akun, jadi email tidak perlu unik terhadap tabel users
+                'email'        => $isGuest
+                    ? ['required', 'email', 'max:150']
+                    : ['required', 'email', Rule::unique('users', 'email')->ignore($user->id)],
                 'no_hp'        => 'required|string|min:10|max:15|regex:/^[0-9]+$/',
                 'alamat_lengkap' => 'required|string',
             ]);
@@ -217,23 +231,32 @@ class CheckoutController extends Controller
 
         $request->validate($rules);
 
-        if ($isGeneralBuyer) {
+        if ($isGuest) {
+            $this->guardGuestOrderLimit($request);
+        }
+
+        if (!$isGuest && $isGeneralBuyer) {
             $this->persistGeneralBuyerProfile($request, $user);
             $user->load('detail');
         }
 
-        if (!$user->detail) {
+        if (!$isGuest && !$user->detail) {
             return redirect()->route('user-detail.index')
                 ->with('warning', 'Lengkapi biodata terlebih dahulu sebelum checkout.');
         }
 
-        $cart = Cart::with('items.merchandise')
-            ->firstOrCreate(['user_id' => $user->id]);
+        $cart = Cart::current(false);
 
-        if ($cart->items->isEmpty()) {
+        if ($cart->exists) {
+            $cart->load('items.merchandise', 'items.variant');
+        }
+
+        if (!$cart->exists || $cart->items->isEmpty()) {
             return redirect()->route('cart.index')
                 ->with('warning', 'Keranjang Anda masih kosong.');
         }
+
+        $buyer = $this->buyerSnapshot($request, $user);
 
         $subtotal = 0;
 
@@ -245,7 +268,7 @@ class CheckoutController extends Controller
                     ->with('warning', 'Ada merchandise yang sudah tidak tersedia.');
             }
 
-            if ($item->quantity > $merchandise->qty_stock) {
+            if ($item->quantity > $item->availableStock()) {
                 return redirect()->route('cart.index')
                     ->with('warning', 'Stok merchandise tidak mencukupi untuk checkout.');
             }
@@ -282,9 +305,15 @@ class CheckoutController extends Controller
         }
 
         try {
-            $order = DB::transaction(function () use ($cart, $request, $user, $selectedQuote, $destination) {
-            // Kunci baris merchandise & validasi ulang stok (cegah race condition antar user)
-            $lockedMerchandise = Merchandise::whereIn('id', $cart->items->pluck('merchandise_id'))
+            $order = DB::transaction(function () use ($cart, $request, $user, $buyer, $selectedQuote, $destination) {
+            // Kunci baris merchandise & varian, lalu validasi ulang stok (cegah race condition antar user)
+            $lockedMerchandise = Merchandise::whereIn('id', $cart->items->pluck('merchandise_id')->unique())
+                ->orderBy('id')
+                ->lockForUpdate()
+                ->get()
+                ->keyBy('id');
+
+            $lockedVariants = MerchandiseVariant::whereIn('id', $cart->items->pluck('merchandise_variant_id')->filter()->unique())
                 ->orderBy('id')
                 ->lockForUpdate()
                 ->get()
@@ -295,7 +324,33 @@ class CheckoutController extends Controller
             foreach ($cart->items as $item) {
                 $locked = $lockedMerchandise->get($item->merchandise_id);
 
-                if (!$locked || !$locked->is_active || $item->quantity > $locked->qty_stock) {
+                if (!$locked || !$locked->is_active) {
+                    throw new InsufficientStockException(
+                        'Ada merchandise yang sudah tidak tersedia. Silakan periksa kembali keranjang Anda.'
+                    );
+                }
+
+                if ($locked->has_variants) {
+                    $lockedVariant = $lockedVariants->get($item->merchandise_variant_id);
+
+                    if (!$lockedVariant
+                        || !$lockedVariant->is_active
+                        || (int) $lockedVariant->merchandise_id !== (int) $locked->id) {
+                        throw new InsufficientStockException(
+                            'Varian merchandise berubah. Silakan periksa kembali keranjang Anda.'
+                        );
+                    }
+
+                    $availableStock = (int) $lockedVariant->qty_stock;
+                } elseif ($item->merchandise_variant_id) {
+                    throw new InsufficientStockException(
+                        'Varian merchandise berubah. Silakan periksa kembali keranjang Anda.'
+                    );
+                } else {
+                    $availableStock = (int) $locked->qty_stock;
+                }
+
+                if ($item->quantity > $availableStock) {
                     throw new InsufficientStockException(
                         'Stok merchandise berubah dan tidak mencukupi. Silakan periksa kembali keranjang Anda.'
                     );
@@ -306,22 +361,23 @@ class CheckoutController extends Controller
 
             $order = Order::create([
                 'invoice_number'          => $this->generateInvoiceNumber(),
-                'user_id'                 => $user->id,
+                'access_token'            => Order::generateAccessToken(),
+                'user_id'                 => $user ? $user->id : null,
                 'expedition_id'           => $selectedQuote['expedition_id'],
                 'expedition_name'         => $selectedQuote['expedition_name'],
                 'expedition_code'         => $selectedQuote['courier_code'],
                 'expedition_service_name' => $selectedQuote['service_name'],
                 'expedition_service_code' => $selectedQuote['service_code'],
-                'recipient_name'          => $user->name,
-                'recipient_email'         => $user->email,
-                'recipient_phone'         => $user->no_hp,
-                'province_name'           => $user->detail->provinsi_name,
-                'city_name'               => $user->detail->kabupaten_name,
-                'district_name'           => $user->detail->kecamatan_name,
-                'village_name'            => $user->detail->desa_name,
+                'recipient_name'          => $buyer['name'],
+                'recipient_email'         => $buyer['email'],
+                'recipient_phone'         => $buyer['phone'],
+                'province_name'           => $buyer['province'],
+                'city_name'               => $buyer['city'],
+                'district_name'           => $buyer['district'],
+                'village_name'            => $buyer['village'],
                 'postal_code'             => $request->postal_code,
                 'shipping_destination_id' => $destination['id'] ?? null,
-                'full_address'            => $this->resolveOrderAddress($user, $selectedQuote),
+                'full_address'            => $this->resolveOrderAddress($buyer, $selectedQuote),
                 'notes'                   => $request->notes,
                 'shipping_fee'            => $selectedQuote['price'],
                 'shipping_etd'            => $selectedQuote['etd'],
@@ -331,21 +387,38 @@ class CheckoutController extends Controller
                 'payment_due_at'          => now()->addHours(AppSetting::paymentDueHours()),
             ]);
 
+            $variantProducts = [];
+
             foreach ($cart->items as $item) {
                 $merchandise = $lockedMerchandise->get($item->merchandise_id);
+                $variant = $item->merchandise_variant_id
+                    ? $lockedVariants->get($item->merchandise_variant_id)
+                    : null;
 
                 $order->items()->create([
-                    'merchandise_id'    => $merchandise->id,
-                    'merchandise_name'  => $merchandise->name,
-                    'merchandise_slug'  => $merchandise->slug,
-                    'merchandise_image' => $merchandise->image,
-                    'unit_price'        => $merchandise->currentPrice(),
-                    'quantity'          => $item->quantity,
-                    'weight'            => $merchandise->weight,
-                    'subtotal'          => $item->quantity * $merchandise->currentPrice(),
+                    'merchandise_id'         => $merchandise->id,
+                    'merchandise_variant_id' => $variant ? $variant->id : null,
+                    'merchandise_name'       => $variant ? $merchandise->name . ' (' . $variant->name . ')' : $merchandise->name,
+                    'variant_name'           => $variant ? $variant->name : null,
+                    'merchandise_slug'       => $merchandise->slug,
+                    'merchandise_image'      => $merchandise->image,
+                    'unit_price'             => $merchandise->currentPrice(),
+                    'quantity'               => $item->quantity,
+                    'weight'                 => $merchandise->weight,
+                    'subtotal'               => $item->quantity * $merchandise->currentPrice(),
                 ]);
 
-                $merchandise->decrement('qty_stock', $item->quantity);
+                if ($variant) {
+                    $variant->decrement('qty_stock', $item->quantity);
+                    $variantProducts[$merchandise->id] = $merchandise;
+                } else {
+                    $merchandise->decrement('qty_stock', $item->quantity);
+                }
+            }
+
+            // Total stok produk bervarian = jumlah stok semua varian
+            foreach ($variantProducts as $variantProduct) {
+                $variantProduct->syncStockFromVariants();
             }
 
             $cart->items()->delete();
@@ -355,6 +428,11 @@ class CheckoutController extends Controller
         } catch (InsufficientStockException $exception) {
             return redirect()->route('cart.index')
                 ->with('warning', $exception->getMessage());
+        }
+
+        if ($isGuest) {
+            return redirect()->route('orders.guest.show', ['token' => $order->access_token])
+                ->with('success', 'Invoice berhasil dibuat. Simpan link halaman ini untuk membuka invoice dan mengunggah bukti transfer.');
         }
 
         return redirect()->route('orders.show', $order)
@@ -426,7 +504,8 @@ class CheckoutController extends Controller
 
     protected function resolveShippingAddressData(Request $request, $user, $forQuote = false)
     {
-        $isGeneralBuyer = $user->isGeneralBuyer();
+        $isGeneralBuyer = $this->isGeneralBuyer($user);
+        $detail = $user ? $user->detail : null;
 
         if (!$isGeneralBuyer) {
             if (!$user->detail) {
@@ -449,14 +528,14 @@ class CheckoutController extends Controller
         $this->mergeLaravoltLocationNames($request);
 
         $data = [
-            'provinsi_code' => $request->input('provinsi_code', optional($user->detail)->provinsi_code),
-            'provinsi_name' => $request->input('provinsi_name', optional($user->detail)->provinsi_name),
-            'kabupaten_code' => $request->input('kabupaten_code', optional($user->detail)->kabupaten_code),
-            'kabupaten_name' => $request->input('kabupaten_name', optional($user->detail)->kabupaten_name),
-            'kecamatan_code' => $request->input('kecamatan_code', optional($user->detail)->kecamatan_code),
-            'kecamatan_name' => $request->input('kecamatan_name', optional($user->detail)->kecamatan_name),
-            'desa_code' => $request->input('desa_code', optional($user->detail)->desa_code),
-            'desa_name' => $request->input('desa_name', optional($user->detail)->desa_name),
+            'provinsi_code' => $request->input('provinsi_code', optional($detail)->provinsi_code),
+            'provinsi_name' => $request->input('provinsi_name', optional($detail)->provinsi_name),
+            'kabupaten_code' => $request->input('kabupaten_code', optional($detail)->kabupaten_code),
+            'kabupaten_name' => $request->input('kabupaten_name', optional($detail)->kabupaten_name),
+            'kecamatan_code' => $request->input('kecamatan_code', optional($detail)->kecamatan_code),
+            'kecamatan_name' => $request->input('kecamatan_name', optional($detail)->kecamatan_name),
+            'desa_code' => $request->input('desa_code', optional($detail)->desa_code),
+            'desa_name' => $request->input('desa_name', optional($detail)->desa_name),
             'postal_code' => $request->postal_code,
         ];
 
@@ -487,7 +566,7 @@ class CheckoutController extends Controller
 
     protected function resolveShippingDestination(Request $request, $user, RajaOngkirDestinationResolver $destinationResolver, $forQuote = false)
     {
-        if ($user->isGeneralBuyer()) {
+        if ($this->isGeneralBuyer($user)) {
             $selectedDestination = $this->selectedDestinationFromRequest($request, $forQuote);
 
             if ($selectedDestination !== null) {
@@ -678,12 +757,85 @@ class CheckoutController extends Controller
         ];
     }
 
-    protected function resolveOrderAddress($user, array $selectedQuote)
+    protected function resolveOrderAddress(array $buyer, array $selectedQuote)
     {
         if (($selectedQuote['service_code'] ?? null) === static::SELF_PICKUP_CODE) {
             return static::SELF_PICKUP_NAME;
         }
 
-        return optional($user->detail)->formatted_address ?: static::SELF_PICKUP_NAME;
+        return $buyer['address'] ?: static::SELF_PICKUP_NAME;
+    }
+
+    /** Tamu (belum login) memakai alur yang sama dengan pembeli umum: biodata diisi di form checkout. */
+    protected function isGeneralBuyer($user)
+    {
+        return !$user || $user->isGeneralBuyer();
+    }
+
+    /**
+     * Data penerima untuk order. User login: dari akun/biodata (sudah diperbarui dari form);
+     * tamu: langsung dari form checkout (tidak ada akun yang dibuat).
+     */
+    protected function buyerSnapshot(Request $request, $user)
+    {
+        if ($user) {
+            return [
+                'name'     => $user->name,
+                'email'    => $user->email,
+                'phone'    => $user->no_hp,
+                'province' => $user->detail->provinsi_name,
+                'city'     => $user->detail->kabupaten_name,
+                'district' => $user->detail->kecamatan_name,
+                'village'  => $user->detail->desa_name,
+                'address'  => $user->detail->formatted_address,
+            ];
+        }
+
+        $province = trim((string) $request->input('provinsi_name'));
+        $city     = trim((string) $request->input('kabupaten_name'));
+        $district = trim((string) $request->input('kecamatan_name'));
+        $village  = trim((string) $request->input('desa_name'));
+
+        return [
+            'name'     => trim(strip_tags((string) $request->input('name'))),
+            'email'    => trim((string) $request->input('email')),
+            'phone'    => preg_replace('/\D+/', '', (string) $request->input('no_hp')),
+            'province' => $province,
+            'city'     => $city,
+            'district' => $district,
+            'village'  => $village,
+            'address'  => collect([
+                trim(strip_tags((string) $request->input('alamat_lengkap'))),
+                $village,
+                $district,
+                $city,
+                $province,
+            ])->filter()->implode(', '),
+        ];
+    }
+
+    /**
+     * Batasi stok yang bisa "ditahan" satu pembeli tamu: maksimal 3 pesanan belum dibayar
+     * per nomor HP / email. Mencegah bot menghabiskan stok dengan banyak pesanan palsu.
+     */
+    protected function guardGuestOrderLimit(Request $request)
+    {
+        $phone = preg_replace('/\D+/', '', (string) $request->input('no_hp'));
+        $email = strtolower(trim((string) $request->input('email')));
+
+        $pending = Order::whereNull('user_id')
+            ->where('status', Order::STATUS_WAITING_PAYMENT)
+            ->where('payment_due_at', '>=', now())
+            ->where(function ($query) use ($phone, $email) {
+                $query->where('recipient_phone', $phone)
+                    ->orWhere('recipient_email', $email);
+            })
+            ->count();
+
+        if ($pending >= 3) {
+            throw ValidationException::withMessages([
+                'no_hp' => ['Anda masih memiliki 3 pesanan yang belum dibayar. Selesaikan pembayaran atau tunggu hingga pesanan kedaluwarsa.'],
+            ]);
+        }
     }
 }

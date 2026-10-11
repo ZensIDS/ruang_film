@@ -32,7 +32,16 @@
                                 <td>{{ $merchandise->category->name ?? '-' }}</td>
                                 <td>@currency($merchandise->price)</td>
                                 <td>{{ number_format($merchandise->weight) }} gr</td>
-                                <td>{{ $merchandise->qty_stock }}</td>
+                                <td data-order="{{ $merchandise->qty_stock }}">
+                                    {{ $merchandise->qty_stock }}
+                                    @if($merchandise->has_variants)
+                                    <div style="margin-top:4px;">
+                                        @foreach($merchandise->activeVariants as $variant)
+                                        <span class="label {{ $variant->qty_stock < 1 ? 'label-danger' : 'label-default' }}" style="display:inline-block;margin:1px 2px 1px 0;">{{ $variant->name }}: {{ $variant->qty_stock }}</span>
+                                        @endforeach
+                                    </div>
+                                    @endif
+                                </td>
                                 <td>{{ $merchandise->is_active ? 'Aktif' : 'Nonaktif' }}</td>
                                 <td>
                                     <a href="{{ route('admin-merchandises.edit', $merchandise) }}" class="btn btn-warning btn-xs">Edit</a>

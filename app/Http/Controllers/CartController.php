@@ -6,14 +6,14 @@ use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\Merchandise;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class CartController extends Controller
 {
     public function index()
     {
-        $cart = Cart::firstOrCreate(
-            ['user_id' => auth()->id()]
-        );
+        // Tamu & user login sama-sama punya keranjang (tamu lewat cookie token)
+        $cart = Cart::current(false);
 
         // Sinkronkan qty/harga keranjang dengan stok terbaru
         $notices = $cart->syncWithStock();
@@ -30,39 +30,102 @@ class CartController extends Controller
     public function store(Request $request, Merchandise $merchandise)
     {
         $request->validate([
-            'quantity' => 'nullable|integer|min:1',
+            'quantity' => 'nullable|integer|min:1|max:999',
+            'merchandise_variant_id' => 'nullable|integer',
         ]);
 
         if (!$merchandise->is_active) {
-            return back()->with('warning', 'Merchandise tidak tersedia.');
+            return $this->cartErrorResponse($request, 'Merchandise tidak tersedia.');
         }
 
         $quantity = (int) ($request->quantity ?: 1);
+        $variantId = $request->input('merchandise_variant_id');
 
-        if ($quantity > $merchandise->qty_stock) {
-            return back()->with('warning', 'Jumlah melebihi stok yang tersedia.');
-        }
+        $result = DB::transaction(function () use ($merchandise, $quantity, $variantId) {
+            $cart = Cart::current(true);
 
-        $cart = Cart::firstOrCreate(['user_id' => auth()->id()]);
-        $item = $cart->items()->where('merchandise_id', $merchandise->id)->first();
+            // Kunci keranjang milik user agar klik ganda / dua tab tidak membuat baris dobel
+            Cart::whereKey($cart->id)->lockForUpdate()->first();
 
-        if ($item) {
-            $newQty = $item->quantity + $quantity;
+            // Baca ulang data terbaru (stok bisa berubah sejak halaman dibuka)
+            $fresh = Merchandise::find($merchandise->id);
 
-            if ($newQty > $merchandise->qty_stock) {
-                return back()->with('warning', 'Jumlah total di keranjang melebihi stok.');
+            if (!$fresh || !$fresh->is_active) {
+                return ['error' => 'Merchandise tidak tersedia.'];
             }
 
-            $item->update([
-                'quantity' => $newQty,
-                'unit_price' => $merchandise->currentPrice(),
-            ]);
-        } else {
-            $cart->items()->create([
-                'merchandise_id' => $merchandise->id,
-                'quantity' => $quantity,
-                'unit_price' => $merchandise->currentPrice(),
-            ]);
+            $variant = null;
+
+            if ($fresh->has_variants) {
+                if (!$variantId) {
+                    return ['error' => 'Silakan pilih varian terlebih dahulu.'];
+                }
+
+                $variant = $fresh->variants()->where('is_active', true)->find($variantId);
+
+                if (!$variant) {
+                    return ['error' => 'Varian yang dipilih tidak tersedia.'];
+                }
+
+                $stock = (int) $variant->qty_stock;
+            } else {
+                $stock = (int) $fresh->qty_stock;
+            }
+
+            if ($stock < 1) {
+                return ['error' => 'Stok habis.'];
+            }
+
+            $item = $cart->items()
+                ->where('merchandise_id', $fresh->id)
+                ->when(
+                    $variant,
+                    function ($query) use ($variant) {
+                        $query->where('merchandise_variant_id', $variant->id);
+                    },
+                    function ($query) {
+                        $query->whereNull('merchandise_variant_id');
+                    }
+                )
+                ->first();
+
+            $inCart = $item ? (int) $item->quantity : 0;
+
+            if ($inCart + $quantity > $stock) {
+                $message = $inCart > 0
+                    ? "Stok hanya tersisa {$stock} dan di keranjang kamu sudah ada {$inCart}."
+                    : "Stok hanya tersisa {$stock}.";
+
+                return ['error' => $message];
+            }
+
+            if ($item) {
+                $item->update([
+                    'quantity' => $inCart + $quantity,
+                    'unit_price' => $fresh->currentPrice(),
+                ]);
+            } else {
+                $item = $cart->items()->create([
+                    'merchandise_id' => $fresh->id,
+                    'merchandise_variant_id' => $variant ? $variant->id : null,
+                    'quantity' => $quantity,
+                    'unit_price' => $fresh->currentPrice(),
+                ]);
+            }
+
+            return ['item' => $item, 'cart' => $cart];
+        });
+
+        if (isset($result['error'])) {
+            return $this->cartErrorResponse($request, $result['error']);
+        }
+
+        if ($request->expectsJson()) {
+            return $this->cartJsonResponse(
+                $result['cart']->fresh()->load('items'),
+                'Berhasil ditambahkan ke keranjang.',
+                $result['item']->fresh()
+            );
         }
 
         return back()->with('success', 'Merchandise berhasil ditambahkan ke keranjang.');
@@ -78,7 +141,7 @@ class CartController extends Controller
 
         $merchandise = $cartItem->merchandise;
 
-        if (!$merchandise || $request->quantity > $merchandise->qty_stock) {
+        if (!$merchandise || $request->quantity > $cartItem->availableStock()) {
             return $this->cartErrorResponse($request, 'Jumlah melebihi stok yang tersedia.');
         }
 
@@ -122,12 +185,10 @@ class CartController extends Controller
 
     protected function authorizeCartItem(CartItem $cartItem)
     {
-        abort_unless(
-            $cartItem->cart
-                && auth()->user()
-                && auth()->user()->ownsUserId($cartItem->cart->user_id),
-            403
-        );
+        $cart = Cart::current(false);
+
+        // Item harus milik keranjang pengunjung saat ini (user login atau tamu)
+        abort_unless($cart->exists && (int) $cartItem->cart_id === (int) $cart->id, 403);
     }
 
     protected function cartErrorResponse(Request $request, $message, $status = 422)

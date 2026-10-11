@@ -6,9 +6,23 @@
             <div class="box box-primary">
                 <div class="box-header with-border">
                     <h3 class="box-title"><b>Detail Invoice {{ $order->invoice_number }}</b></h3>
+                    <div class="box-tools pull-right">
+                        @php($waUrl = $order->whatsappUrl())
+                        @if($waUrl)
+                        <a href="{{ $waUrl }}" target="_blank" rel="noopener noreferrer" class="btn btn-success btn-sm">
+                            <i class="fa fa-whatsapp"></i> Hubungi via WhatsApp
+                        </a>
+                        @else
+                        <button type="button" class="btn btn-default btn-sm" disabled title="Nomor HP pembeli tidak valid">
+                            <i class="fa fa-whatsapp"></i> Hubungi via WhatsApp
+                        </button>
+                        @endif
+                    </div>
                 </div>
                 <div class="box-body">
-                    <p><b>Pembeli:</b> {{ $order->recipient_name }} ({{ $order->recipient_phone }})</p>
+                    <p><b>Pembeli:</b> {{ $order->recipient_name }} ({{ $order->recipient_phone }})
+                        @if($order->isGuest())<span class="label label-default">Tamu</span>@endif
+                    </p>
                     @if($order->isSelfPickup())
                     <p><b>Metode:</b> {{ $order->deliveryMethodLabel() }}</p>
                     <p><b>Pengambilan:</b> Pesanan diambil sendiri di basecamp.</p>

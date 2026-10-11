@@ -279,7 +279,7 @@
                 <a href="/portal" class="nav-link {{ request()->is('portal') ? 'text-purple-300' : 'text-gray-200' }} hover:text-purple-300 transition">Berita</a>
                 <a href="/merchandise" class="nav-link {{ request()->is('merchandise') ? 'text-purple-300' : 'text-gray-200' }} hover:text-purple-300 transition">Merchandise</a>
                 {{-- Keranjang --}}
-                <a href="{{ auth()->check() ? route('cart.index') : route('login') }}" class="relative inline-flex text-gray-200 hover:text-purple-300 transition" title="Keranjang belanja">
+                <a href="{{ route('cart.index') }}" class="relative inline-flex text-gray-200 hover:text-purple-300 transition" title="Keranjang belanja">
                     <i class="fas fa-shopping-cart text-lg"></i>
                     <span id="cart-count"
                         class="absolute -top-2.5 -right-3 min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[10px] leading-none font-bold rounded-full flex items-center justify-center shadow-[0_0_0_2px_rgba(15,15,35,0.95)] {{ $landingCartCount > 0 ? '' : 'hidden' }}">
@@ -295,6 +295,7 @@
                     class="btn-gradient px-5 py-2 rounded-full text-white text-sm font-semibold tracking-wide shadow-lg transition-all">Dashboard</a>
                 @endif
                 @else
+                <a href="{{ route('orders.guest.lookup') }}" class="nav-link text-gray-200 hover:text-purple-300 transition">Cek Pesanan</a>
                 <a href="{{ route('login') }}"
                     class="btn-gradient px-5 py-2 rounded-full text-white text-sm font-semibold tracking-wide shadow-lg transition-all">Login</a>
                 @endif
@@ -302,7 +303,7 @@
             <!-- Mobile menu icon + dropdown sederhana (responsive) -->
             <div class="md:hidden flex items-center gap-4">
                 {{-- Keranjang mobile --}}
-                <a href="{{ auth()->check() ? route('cart.index') : route('login') }}" class="relative inline-flex text-gray-200 hover:text-purple-300 transition" title="Keranjang">
+                <a href="{{ route('cart.index') }}" class="relative inline-flex text-gray-200 hover:text-purple-300 transition" title="Keranjang">
                     <i class="fas fa-shopping-cart text-lg"></i>
                     <span id="cart-count-mobile"
                         class="absolute -top-2.5 -right-3 min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[10px] leading-none font-bold rounded-full flex items-center justify-center shadow-[0_0_0_2px_rgba(15,15,35,0.95)] {{ $landingCartCount > 0 ? '' : 'hidden' }}">
@@ -330,6 +331,7 @@
                 class="btn-gradient inline-block text-center px-4 py-2 rounded-full text-white font-semibold">Dashboard</a>
             @endif
             @else
+            <a href="{{ route('orders.guest.lookup') }}" class="nav-link block py-2 text-gray-200 hover:text-purple-300">Cek Pesanan</a>
             <a href="{{ route('login') }}"
                 class="btn-gradient inline-block text-center px-4 py-2 rounded-full text-white font-semibold">Login</a>
             @endif
